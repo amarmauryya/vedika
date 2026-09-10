@@ -494,16 +494,49 @@ body {
     margin-bottom: 20px;
 }
 
+.service-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
 .service-price {
     font-family: var(--font-heading);
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--gold-primary);
-    padding: 8px 24px;
+    padding: 8px 18px;
     border: 1px solid var(--border-color);
     border-radius: 30px;
     display: inline-block;
     background: rgba(212, 168, 67, 0.05);
+}
+
+.service-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, var(--gold-dark), var(--gold-primary));
+    color: #0a0a12;
+    padding: 9px 20px;
+    border-radius: 30px;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: var(--transition);
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(212, 168, 67, 0.2);
+}
+
+.service-cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 168, 67, 0.4);
+    color: #000;
 }
 
 /* ====== ABOUT ====== */
