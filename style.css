@@ -1117,18 +1117,63 @@ body {
         height: 350px;
     }
 
+    .about-content .section-title {
+        text-align: center;
+    }
+
+    .section-divider.left {
+        margin: 0 auto 24px;
+    }
+
+    .about-text {
+        text-align: center;
+    }
+
+    .about-features {
+        justify-items: center;
+    }
+
     .footer-grid {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .cta-content {
+        padding: 60px 30px;
     }
 }
 
 @media (max-width: 768px) {
+    /* Navbar */
     .navbar {
-        padding: 14px 20px;
+        padding: 12px 16px;
+    }
+
+    .navbar.scrolled {
+        padding: 10px 16px;
+    }
+
+    .nav-logo {
+        font-size: 1.1rem;
     }
 
     .nav-toggle {
         display: flex;
+    }
+
+    .nav-toggle.active span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 5px);
+    }
+
+    .nav-toggle.active span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .nav-toggle.active span:nth-child(3) {
+        transform: rotate(-45deg) translate(5px, -5px);
     }
 
     .nav-links {
@@ -1137,13 +1182,16 @@ body {
         right: -100%;
         width: 280px;
         height: 100vh;
+        height: 100dvh;
         background: rgba(10, 10, 18, 0.98);
         backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         flex-direction: column;
         padding: 100px 30px 40px;
         gap: 4px;
         transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         border-left: 1px solid var(--border-color);
+        overflow-y: auto;
     }
 
     .nav-links.open {
@@ -1154,78 +1202,321 @@ body {
         font-size: 0.9rem;
         padding: 14px 16px;
         border-radius: var(--radius);
+        width: 100%;
+    }
+
+    /* Hero */
+    .hero {
+        padding-top: 70px;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+
+    .hero-content {
+        padding: 10px 20px 0;
     }
 
     .hero-title {
-        font-size: clamp(2rem, 8vw, 3rem);
+        font-size: clamp(1.8rem, 8vw, 2.8rem);
     }
 
-    .hero-stats {
-        flex-direction: column;
-        gap: 16px;
+    .hero-badge {
+        font-size: 0.65rem;
+        padding: 6px 16px;
+        letter-spacing: 2px;
+        margin-bottom: 24px;
     }
 
-    .stat-divider {
-        width: 40px;
-        height: 1px;
-    }
-
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .plan-cards {
-        grid-template-columns: 1fr;
-    }
-
-    .reading-form {
-        padding: 30px 20px;
-    }
-
-    .about-features {
-        grid-template-columns: 1fr;
-    }
-
-    .about-experience-badge {
-        right: 10px;
-        bottom: -10px;
-    }
-
-    .footer-grid {
-        grid-template-columns: 1fr;
-        gap: 30px;
-    }
-
-    .footer-bottom {
-        flex-direction: column;
-        text-align: center;
-    }
-
-    .testimonial-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .services-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 480px) {
     .hero-subtitle {
-        font-size: 0.9rem;
+        font-size: 0.88rem;
+        line-height: 1.7;
+        margin-bottom: 30px;
+        padding: 0 10px;
     }
 
     .hero-cta {
         flex-direction: column;
         align-items: center;
+        gap: 12px;
+        margin-bottom: 40px;
     }
 
-    .btn {
+    .hero-cta .btn {
         width: 100%;
+        max-width: 320px;
+        justify-content: center;
+        padding: 14px 24px;
+        font-size: 0.8rem;
+    }
+
+    .hero-stats {
+        flex-direction: row;
+        gap: 20px;
+        flex-wrap: wrap;
         justify-content: center;
     }
 
+    .stat-number {
+        font-size: 1.2rem;
+    }
+
+    .stat-label {
+        font-size: 0.65rem;
+        letter-spacing: 1px;
+    }
+
+    .stat-divider {
+        width: 1px;
+        height: 30px;
+    }
+
+    .hero-scroll-indicator {
+        bottom: 20px;
+    }
+
+    /* Sections padding */
+    .services,
+    .about,
+    .reading,
+    .testimonials,
+    .faq {
+        padding: 70px 0;
+    }
+
+    .cta-section {
+        padding: 60px 0;
+    }
+
+    .section-header {
+        margin-bottom: 40px;
+    }
+
     .section-title {
-        font-size: 1.5rem;
+        font-size: clamp(1.4rem, 5vw, 1.8rem);
+    }
+
+    .section-tag {
+        font-size: 0.65rem;
+        letter-spacing: 3px;
+        padding: 5px 14px;
+    }
+
+    /* Services */
+    .services-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .service-card {
+        padding: 30px 24px;
+    }
+
+    .service-icon {
+        font-size: 2rem;
+    }
+
+    .service-title {
+        font-size: 1rem;
+    }
+
+    .service-desc {
+        font-size: 0.85rem;
+    }
+
+    /* About */
+    .about-grid {
+        gap: 30px;
+    }
+
+    .about-image-wrapper img {
+        height: 280px;
+    }
+
+    .about-experience-badge {
+        right: 10px;
+        bottom: -10px;
+        padding: 14px 18px;
+    }
+
+    .exp-number {
+        font-size: 1.4rem;
+    }
+
+    .about-content .section-tag {
+        display: inline-block;
+    }
+
+    .about-features {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .about-text {
+        font-size: 0.88rem;
+    }
+
+    /* Form */
+    .reading-form {
+        padding: 30px 20px;
+        border-radius: var(--radius);
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .form-input {
+        padding: 12px 14px;
+        font-size: 16px; /* Prevent iOS zoom */
+    }
+
+    .form-label {
+        font-size: 0.68rem;
+    }
+
+    .plan-cards {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .plan-inner {
+        padding: 18px 16px;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .plan-price {
+        font-size: 1.2rem;
+    }
+
+    .btn-submit {
+        padding: 16px;
+        font-size: 0.85rem;
+    }
+
+    /* Testimonials */
+    .testimonial-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .testimonial-card {
+        padding: 28px 22px;
+    }
+
+    .testimonial-text {
+        font-size: 1rem;
+    }
+
+    /* FAQ */
+    .faq-question {
+        padding: 16px 18px;
+        font-size: 0.88rem;
+    }
+
+    .faq-answer p {
+        padding: 0 18px 16px;
+        font-size: 0.85rem;
+    }
+
+    /* CTA */
+    .cta-content {
+        padding: 50px 24px;
+    }
+
+    .cta-title {
+        font-size: clamp(1.3rem, 5vw, 1.8rem);
+    }
+
+    .cta-subtitle {
+        font-size: 0.88rem;
+    }
+
+    /* Footer */
+    .footer {
+        padding: 50px 0 0;
+    }
+
+    .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+        text-align: center;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px 0;
     }
 }
+
+@media (max-width: 400px) {
+    .hero-title {
+        font-size: 1.6rem;
+    }
+
+    .hero-subtitle {
+        font-size: 0.82rem;
+    }
+
+    .hero-badge {
+        font-size: 0.6rem;
+        padding: 5px 12px;
+    }
+
+    .hero-stats {
+        gap: 14px;
+    }
+
+    .stat-number {
+        font-size: 1rem;
+    }
+
+    .section-title {
+        font-size: 1.3rem;
+    }
+
+    .btn {
+        font-size: 0.75rem;
+        padding: 12px 20px;
+        letter-spacing: 1px;
+    }
+
+    .service-card {
+        padding: 24px 18px;
+    }
+
+    .about-image-wrapper img {
+        height: 220px;
+    }
+
+    .cta-content {
+        padding: 40px 18px;
+    }
+
+    .reading-form {
+        padding: 24px 16px;
+    }
+
+    .container {
+        padding: 0 16px;
+    }
+}
+
+/* Touch device improvements */
+@media (hover: none) {
+    .service-card:hover,
+    .testimonial-card:hover {
+        transform: none;
+    }
+
+    .btn:active {
+        transform: scale(0.97);
+    }
+
+    .plan-inner:active {
+        background: rgba(212, 168, 67, 0.1);
+    }
+}
+
