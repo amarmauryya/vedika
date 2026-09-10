@@ -237,3 +237,82 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         });
     });
 })();
+
+// ====== FLOATING MOBILE CTA & BACK TO TOP ======
+(function initFloatingElements() {
+    const mobileCta = document.getElementById('mobileCta');
+    const backToTop = document.getElementById('backToTop');
+    const readingSection = document.getElementById('reading');
+
+    if (!mobileCta || !backToTop) return;
+
+    let lastScroll = 0;
+    let ctaHidden = false;
+
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY;
+        const windowHeight = window.innerHeight;
+
+        // Show floating CTA after scrolling past hero
+        if (scrollY > windowHeight * 0.5) {
+            // Hide when user reaches the reading form section
+            if (readingSection) {
+                const readingTop = readingSection.offsetTop;
+                const readingBottom = readingTop + readingSection.offsetHeight;
+                if (scrollY + windowHeight > readingTop && scrollY < readingBottom) {
+                    mobileCta.classList.remove('visible');
+                } else {
+                    mobileCta.classList.add('visible');
+                }
+            } else {
+                mobileCta.classList.add('visible');
+            }
+        } else {
+            mobileCta.classList.remove('visible');
+        }
+
+        // Show back-to-top after scrolling 600px
+        if (scrollY > 600) {
+            backToTop.classList.add('visible');
+        } else {
+            backToTop.classList.remove('visible');
+        }
+
+        // Hide floating CTA on scroll down, show on scroll up (mobile feel)
+        if (scrollY > lastScroll + 50 && scrollY > windowHeight) {
+            ctaHidden = true;
+        } else if (scrollY < lastScroll - 20) {
+            ctaHidden = false;
+        }
+
+        lastScroll = scrollY;
+    });
+
+    // Back to top click
+    backToTop.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+})();
+
+// ====== MOBILE NAV BODY LOCK ======
+(function initBodyLock() {
+    const navToggle = document.getElementById('navToggle');
+    const navLinks = document.getElementById('navLinks');
+
+    if (!navToggle || !navLinks) return;
+
+    navToggle.addEventListener('click', () => {
+        if (navLinks.classList.contains('open')) {
+            document.body.style.overflow = '';
+        } else {
+            document.body.style.overflow = 'hidden';
+        }
+    });
+
+    // Unlock on link click
+    navLinks.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            document.body.style.overflow = '';
+        });
+    });
+})();
