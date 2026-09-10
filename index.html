@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Know Your Bhawisya — Discover Your True Destiny | Vedic Astrology Readings</title>
+    <meta name="description" content="Unlock the profound secrets of your life with accurately analyzed Vedic astrology. Personalized Kundli readings by experienced astrologers. Book your reading now for just ₹499.">
+    <meta name="keywords" content="Vedic astrology, Kundli reading, horoscope, birth chart, Bhawisya, destiny, Jyotish">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ============ STARS CANVAS ============ -->
+    <canvas id="starsCanvas"></canvas>
+
+    <!-- ============ NAVBAR ============ -->
+    <nav class="navbar" id="navbar">
+        <a href="#" class="nav-logo">Know Your Bhawisya</a>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="#home" class="nav-link active">Home</a></li>
+            <li><a href="#reading" class="nav-link">Get Reading</a></li>
+            <li><a href="#about" class="nav-link">About</a></li>
+            <li><a href="#services" class="nav-link">Services</a></li>
+            <li><a href="#faq" class="nav-link">FAQ</a></li>
+        </ul>
+    </nav>
+
+    <!-- ============ HERO SECTION ============ -->
+    <section class="hero" id="home">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-badge">✦ Trusted by 5,000+ Seekers ✦</div>
+            <h1 class="hero-title">Discover Your<br><span class="gold-text">True Destiny</span></h1>
+            <p class="hero-subtitle">Unlock the profound secrets of your life with accurately analyzed Vedic astrology. No automated bots, no generic AI text — just authentic cosmic insights calculated strictly from your exact birth chart.</p>
+            <div class="hero-cta">
+                <a href="#reading" class="btn btn-primary">
+                    <span>Book Your Reading Now</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+                <a href="#about" class="btn btn-ghost">Learn More</a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <span class="stat-number">5,000+</span>
+                    <span class="stat-label">Readings Done</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat">
+                    <span class="stat-number">98%</span>
+                    <span class="stat-label">Accuracy Rate</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat">
+                    <span class="stat-number">₹499</span>
+                    <span class="stat-label">Only</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-scroll-indicator">
+            <span>Scroll Down</span>
+            <div class="scroll-arrow"></div>
+        </div>
+    </section>
+
+    <!-- ============ SERVICES SECTION ============ -->
+    <section class="services" id="services">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">What We Offer</span>
+                <h2 class="section-title">Our <span class="gold-text">Services</span></h2>
+                <div class="section-divider"></div>
+            </div>
+            <div class="services-grid">
+                <!-- Card 1 -->
+                <div class="service-card" data-tilt>
+                    <div class="service-icon">💼</div>
+                    <h3 class="service-title">Career & Wealth</h3>
+                    <p class="service-desc">Stuck in your job? Find the optimal time for career switches, promotions, and wealth generation. We analyze your 10th and 11th houses to decode your financial destiny.</p>
+                    <div class="service-price">₹499</div>
+                </div>
+                <!-- Card 2 -->
+                <div class="service-card" data-tilt>
+                    <div class="service-icon">❤️</div>
+                    <h3 class="service-title">Love & Marriage</h3>
+                    <p class="service-desc">Understand your romantic dynamics. Discover the timing of your marriage, the traits of your future partner, and highly effective remedies for relationship harmony.</p>
+                    <div class="service-price">₹499</div>
+                </div>
+                <!-- Card 3 -->
+                <div class="service-card" data-tilt>
+                    <div class="service-icon">🔮</div>
+                    <h3 class="service-title">Comprehensive Reading</h3>
+                    <p class="service-desc">A masterful deep-dive into your complete natal chart covering the next 5 years — career, family, health, love, growth and all hidden gems of your cosmic blueprint.</p>
+                    <div class="service-price">₹499</div>
+                </div>
+                <!-- Card 4 -->
+                <div class="service-card" data-tilt>
+                    <div class="service-icon">🧿</div>
+                    <h3 class="service-title">Remedies & Solutions</h3>
+                    <p class="service-desc">Personalized Vedic remedies including gemstones, mantras, yantras, and rituals tailored to neutralize malefic planetary influences in your chart.</p>
+                    <div class="service-price">₹499</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ ABOUT SECTION ============ -->
+    <section class="about" id="about">
+        <div class="container">
+            <div class="about-grid">
+                <div class="about-image">
+                    <div class="about-image-wrapper">
+                        <img src="astrologer.jpg" alt="Experienced Vedic Astrologer studying Kundli" loading="lazy">
+                        <div class="about-image-border"></div>
+                    </div>
+                    <div class="about-experience-badge">
+                        <span class="exp-number">15+</span>
+                        <span class="exp-text">Years Experience</span>
+                    </div>
+                </div>
+                <div class="about-content">
+                    <span class="section-tag">Who We Are</span>
+                    <h2 class="section-title">Why <span class="gold-text">Know Your Bhawisya</span>?</h2>
+                    <div class="section-divider left"></div>
+                    <p class="about-text">At <strong>Know Your Bhawisya</strong>, we firmly believe that astrology is not magic; it is the advanced science of time, space, and planetary energies. Our goal is to provide you with absolute clarity about your life path.</p>
+                    <p class="about-text">Unlike most commercial websites that hand you a randomly generated computer report, we do things the traditional way. <strong class="gold-text">Every single Kundli is manually analyzed</strong> by our experienced astrologers. We carefully study the exact degrees of your planets, the hidden divisional charts, and your current Mahadasha to give you predictions that actually make sense.</p>
+                    <p class="about-text">Whether you are facing hurdles in your career, confusion in your love life, or seeking the right time for a major decision, our personalized readings act as a guiding light on your journey.</p>
+                    <div class="about-features">
+                        <div class="about-feature">
+                            <span class="feature-icon">✦</span>
+                            <span>100% Manual Analysis</span>
+                        </div>
+                        <div class="about-feature">
+                            <span class="feature-icon">✦</span>
+                            <span>Detailed PDF Report</span>
+                        </div>
+                        <div class="about-feature">
+                            <span class="feature-icon">✦</span>
+                            <span>Vedic Remedies Included</span>
+                        </div>
+                        <div class="about-feature">
+                            <span class="feature-icon">✦</span>
+                            <span>Follow-up Support</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ GET READING / FORM SECTION ============ -->
+    <section class="reading" id="reading">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Start Your Journey</span>
+                <h2 class="section-title">Get Your <span class="gold-text">Reading</span></h2>
+                <div class="section-divider"></div>
+                <p class="section-subtitle">Fill out your accurate birth details below. Choose your preferred horoscope duration to get started.</p>
+            </div>
+            <form class="reading-form" id="readingForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="fullName">Full Name</label>
+                        <input type="text" id="fullName" class="form-input" placeholder="Your real name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email Address</label>
+                        <input type="email" id="email" class="form-input" placeholder="Where should we send the PDF?" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="dob">Date of Birth</label>
+                        <input type="date" id="dob" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="birthPlace">City and State of Birth</label>
+                        <input type="text" id="birthPlace" class="form-input" placeholder="e.g., Ghaziabad, Uttar Pradesh" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="birthTime">Time of Birth</label>
+                        <input type="time" id="birthTime" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="phone">WhatsApp Number</label>
+                        <input type="tel" id="phone" class="form-input" placeholder="+91 XXXXX XXXXX" required>
+                    </div>
+                </div>
+
+                <div class="plan-section">
+                    <label class="form-label plan-label">Choose Horoscope Plan</label>
+                    <div class="plan-cards">
+                        <label class="plan-card" for="plan1">
+                            <input type="radio" name="plan" id="plan1" value="1year" checked>
+                            <div class="plan-inner">
+                                <span class="plan-duration">1 Year</span>
+                                <span class="plan-price">₹499</span>
+                                <span class="plan-detail">Detailed yearly prediction</span>
+                            </div>
+                        </label>
+                        <label class="plan-card" for="plan2">
+                            <input type="radio" name="plan" id="plan2" value="3year">
+                            <div class="plan-inner">
+                                <span class="plan-duration">3 Years</span>
+                                <span class="plan-price">₹499</span>
+                                <span class="plan-detail">Extended life prediction</span>
+                            </div>
+                        </label>
+                        <label class="plan-card" for="plan3">
+                            <input type="radio" name="plan" id="plan3" value="5year">
+                            <div class="plan-inner">
+                                <span class="plan-duration">5 Years</span>
+                                <span class="plan-price">₹499</span>
+                                <span class="plan-badge">Most Popular</span>
+                                <span class="plan-detail">Complete life blueprint</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label" for="question">Any Specific Question? (Optional)</label>
+                    <textarea id="question" class="form-input form-textarea" placeholder="E.g., When will I get married? Should I change my job?" rows="3"></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">
+                    <span>Pay ₹499 & Get Your Reading</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ============ TESTIMONIALS ============ -->
+    <section class="testimonials">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">What People Say</span>
+                <h2 class="section-title">Real <span class="gold-text">Experiences</span></h2>
+                <div class="section-divider"></div>
+            </div>
+            <div class="testimonial-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">"I was skeptical at first, but the reading was shockingly accurate. They predicted my job change timing perfectly. Highly recommended!"</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">R</div>
+                        <div>
+                            <span class="author-name">Rahul Sharma</span>
+                            <span class="author-location">Delhi</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">"The marriage prediction was spot on. Got the PDF within 48 hours and every detail about my partner matched. Amazing experience!"</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">P</div>
+                        <div>
+                            <span class="author-name">Priya Patel</span>
+                            <span class="author-location">Mumbai</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">"Best ₹499 I've ever spent. The remedies they suggested actually worked and my financial situation improved within months."</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">A</div>
+                        <div>
+                            <span class="author-name">Amit Verma</span>
+                            <span class="author-location">Lucknow</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ FAQ SECTION ============ -->
+    <section class="faq" id="faq">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Got Questions?</span>
+                <h2 class="section-title">Frequently Asked <span class="gold-text">Questions</span></h2>
+                <div class="section-divider"></div>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-question" id="faq-btn-1">
+                        <span>How long does it take to get the report?</span>
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>You will receive your detailed PDF report within 24–48 hours of submitting your birth details and completing the payment. For comprehensive readings, it may take up to 72 hours as our astrologers manually analyze every aspect of your chart.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" id="faq-btn-2">
+                        <span>Is my personal information kept private?</span>
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Absolutely. We take your privacy extremely seriously. All your personal details, birth information, and reading content are kept strictly confidential and are never shared with any third party. Your data is encrypted and securely stored.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" id="faq-btn-3">
+                        <span>What if I only know the date of birth?</span>
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>While having the exact time of birth gives the most accurate reading, we can still provide valuable insights with just your date and place of birth. We use advanced Prashna Kundli techniques to compensate for missing time data. However, we always recommend providing the birth time for best results.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" id="faq-btn-4">
+                        <span>What payment methods do you accept?</span>
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>We accept UPI (Google Pay, PhonePe, Paytm), net banking, debit/credit cards, and wallet payments. All transactions are processed securely through Razorpay payment gateway.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question" id="faq-btn-5">
+                        <span>Can I ask follow-up questions after receiving my report?</span>
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! We provide one round of follow-up questions absolutely free within 7 days of receiving your report. You can reach out via WhatsApp or email with any clarifications you need about your reading.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ CTA SECTION ============ -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">Ready to Discover Your <span class="gold-text">Cosmic Blueprint</span>?</h2>
+                <p class="cta-subtitle">Join 5,000+ seekers who have transformed their lives with our Vedic astrology readings.</p>
+                <a href="#reading" class="btn btn-primary btn-large">
+                    <span>Get Your Reading — Just ₹499</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <h3 class="footer-logo">Know Your Bhawisya</h3>
+                    <p class="footer-tagline">Unlocking cosmic wisdom through the ancient science of Vedic Astrology. Your destiny awaits.</p>
+                    <div class="footer-socials">
+                        <a href="#" class="social-link" aria-label="Instagram">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                        </a>
+                        <a href="#" class="social-link" aria-label="YouTube">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                        </a>
+                        <a href="#" class="social-link" aria-label="WhatsApp">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+                        </a>
+                    </div>
+                </div>
+                <div class="footer-links-group">
+                    <h4 class="footer-heading">Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#services">Services</a></li>
+                        <li><a href="#about">About Us</a></li>
+                        <li><a href="#reading">Get Reading</a></li>
+                        <li><a href="#faq">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links-group">
+                    <h4 class="footer-heading">Our Services</h4>
+                    <ul class="footer-links">
+                        <li><a href="#services">Career & Wealth</a></li>
+                        <li><a href="#services">Love & Marriage</a></li>
+                        <li><a href="#services">Comprehensive Reading</a></li>
+                        <li><a href="#services">Remedies & Solutions</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links-group">
+                    <h4 class="footer-heading">Contact</h4>
+                    <ul class="footer-links">
+                        <li>📧 contact@knowyourbhawisya.com</li>
+                        <li>📱 WhatsApp: +91 XXXXX XXXXX</li>
+                        <li>📍 India</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Know Your Bhawisya. All rights reserved.</p>
+                <p class="footer-disclaimer">Disclaimer: Astrology readings are for guidance purposes only.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
