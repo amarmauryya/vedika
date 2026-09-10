@@ -264,6 +264,7 @@ body {
     text-align: center;
     overflow: hidden;
     background: url('hero-bg.jpg') center/cover no-repeat;
+    padding-top: 80px;
 }
 
 .hero-overlay {
@@ -285,7 +286,7 @@ body {
     position: relative;
     z-index: 2;
     max-width: 800px;
-    padding: 0 24px;
+    padding: 20px 24px 0;
     animation: fadeInUp 1s ease-out;
 }
 
