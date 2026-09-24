@@ -275,6 +275,7 @@ function App() {
                 <option value="business">Business</option>
                 <option value="good_morning">Good Morning</option>
                 <option value="motivational">Motivational</option>
+                <option value="political">Political</option>
               </select>
             </div>
             <div style={{ flex: 1 }}>
