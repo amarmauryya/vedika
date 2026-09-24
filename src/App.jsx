@@ -1,22 +1,23 @@
 import { useState, useEffect } from 'react'
 import { db } from './firebase'
-import { collection, addDoc } from 'firebase/firestore'
+import { collection, addDoc, doc, getDoc, setDoc } from 'firebase/firestore'
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth'
-
-// List of allowed admin emails. Add new emails here to give them admin access.
-const ALLOWED_ADMINS = [
-  'ayushkft@gmail.com',
-]
-import { Plus, Trash2, Save, LogOut } from 'lucide-react'
+import { Plus, Trash2, Save, LogOut, UserPlus } from 'lucide-react'
 import './App.css'
+
+// Master admin fallback
+const ALLOWED_ADMINS = ['ayushkft@gmail.com']
 
 function App() {
   const [user, setUser] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [authLoading, setAuthLoading] = useState(true)
 
   const [loading, setLoading] = useState(false)
+  const [newAdminEmail, setNewAdminEmail] = useState('')
+  
   const [template, setTemplate] = useState({
     title: '',
     categoryId: 'festival',
@@ -52,8 +53,25 @@ function App() {
 
   useEffect(() => {
     const auth = getAuth()
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user)
+      if (user) {
+        if (ALLOWED_ADMINS.includes(user.email?.toLowerCase())) {
+          setIsAdmin(true)
+        } else {
+          try {
+            const snap = await getDoc(doc(db, 'config', 'admins'))
+            if (snap.exists() && snap.data().emails?.includes(user.email?.toLowerCase())) {
+              setIsAdmin(true)
+            } else {
+              setIsAdmin(false)
+            }
+          } catch (e) {
+            console.error(e)
+            setIsAdmin(false)
+          }
+        }
+      }
       setAuthLoading(false)
     })
     return () => unsubscribe()
@@ -159,6 +177,28 @@ function App() {
     setLoading(false)
   }
 
+  const handleAddAdmin = async () => {
+    if (!newAdminEmail.trim()) return
+    try {
+      const adminRef = doc(db, 'config', 'admins')
+      const snap = await getDoc(adminRef)
+      let emails = []
+      if (snap.exists()) {
+        emails = snap.data().emails || []
+      }
+      if (!emails.includes(newAdminEmail.trim().toLowerCase())) {
+        emails.push(newAdminEmail.trim().toLowerCase())
+        await setDoc(adminRef, { emails }, { merge: true })
+        alert(`Successfully granted admin access to ${newAdminEmail}!`)
+        setNewAdminEmail('')
+      } else {
+        alert('This email is already an admin!')
+      }
+    } catch (e) {
+      alert('Error adding admin: ' + e.message)
+    }
+  }
+
   if (authLoading) return <div style={{textAlign: 'center', marginTop: '50px'}}>Loading...</div>
 
   if (!user) {
@@ -180,7 +220,7 @@ function App() {
     )
   }
 
-  if (user && !ALLOWED_ADMINS.includes(user.email?.toLowerCase())) {
+  if (user && !isAdmin) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <h2>Access Denied</h2>
@@ -196,9 +236,23 @@ function App() {
     <div className="container" style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto', fontFamily: 'sans-serif' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '2rem', color: '#333' }}>Poster Parchaar Admin</h1>
-        <button onClick={() => signOut(getAuth())} style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', backgroundColor: '#ff4444', color: 'white', border: 'none', borderRadius: '8px' }}>
-          <LogOut size={16} /> Logout
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f0f2f5', padding: '0.5rem', borderRadius: '8px' }}>
+            <input 
+              type="email" 
+              placeholder="Add New Admin Email" 
+              value={newAdminEmail}
+              onChange={e => setNewAdminEmail(e.target.value)}
+              style={{ padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px' }}
+            />
+            <button onClick={handleAddAdmin} style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', backgroundColor: '#4caf50', color: 'white', border: 'none', borderRadius: '4px' }}>
+              <UserPlus size={16} /> Add
+            </button>
+          </div>
+          <button onClick={() => signOut(getAuth())} style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', backgroundColor: '#ff4444', color: 'white', border: 'none', borderRadius: '8px' }}>
+            <LogOut size={16} /> Logout
+          </button>
+        </div>
       </div>
       
       <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '2rem' }}>
