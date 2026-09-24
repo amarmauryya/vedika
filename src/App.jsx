@@ -331,11 +331,10 @@ function App() {
                 <div className="card">
                   <h3 className="card-title">Media URLs</h3>
                   <div className="form-group">
-                    <label>Background Image * (Select file or paste URL)</label>
+                    <label>Background Image *</label>
                     <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
                       <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTemplate, template, "backgroundUrl")} className="input" style={{flex: 1}} />
                     </div>
-                    <input required className="input" value={template.backgroundUrl} onChange={e => setTemplate({...template, backgroundUrl: e.target.value})} placeholder="https://firebasestorage.../image.jpg" />
                     {template.backgroundUrl && <img src={template.backgroundUrl} className="media-preview" alt="bg" onError={e => e.target.style.display="none"} />}
                   </div>
                   <div className="form-group">
@@ -343,7 +342,7 @@ function App() {
                     <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
                       <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTemplate, template, "thumbnailUrl")} className="input" style={{flex: 1}} />
                     </div>
-                    <input className="input" value={template.thumbnailUrl} onChange={e => setTemplate({...template, thumbnailUrl: e.target.value, previewUrl: e.target.value})} placeholder="https://...thumb.jpg" />
+                    {template.thumbnailUrl && <img src={template.thumbnailUrl} className="media-preview" alt="thumb" onError={e => e.target.style.display="none"} />}
                   </div>
                   <div className="two-inputs">
                     <div className="form-group"><label>Canvas W</label><input type="number" className="input" value={template.canvasWidth} onChange={e => setTemplate({...template, canvasWidth: Number(e.target.value)})} /></div>
@@ -451,17 +450,15 @@ function App() {
                 <div className="card">
                   <h3 className="card-title">Video & Thumbnail</h3>
                   <div className="form-group">
-                    <label>MP4 Video * (Select file or paste URL)</label>
+                    <label>MP4 Video *</label>
                     <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
                       <input type="file" accept="video/mp4" onChange={(e) => handleFileUpload(e, setVideoTemplate, videoTemplate, "videoUrl")} className="input input-video" style={{flex: 1}} />
                     </div>
-                    <input required className="input input-video" value={videoTemplate.videoUrl} onChange={e => setVideoTemplate({...videoTemplate, videoUrl: e.target.value})} placeholder="https://firebasestorage.../video.mp4" />
-                    <p className="hint">Direct file upload ya direct MP4 URL paste karein</p>
                   </div>
                   {videoTemplate.videoUrl && (
                     <div className="video-preview-wrap">
                       <video src={videoTemplate.videoUrl} controls className="video-preview" />
-                      <div className="video-success">✅ Video loaded successfully</div>
+                      <div className="video-success">✅ Video uploaded and loaded successfully</div>
                     </div>
                   )}
                   <div className="form-group" style={{marginTop:"16px"}}>
@@ -469,7 +466,6 @@ function App() {
                     <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
                       <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setVideoTemplate, videoTemplate, "thumbnailUrl")} className="input" style={{flex: 1}} />
                     </div>
-                    <input className="input" value={videoTemplate.thumbnailUrl} onChange={e => setVideoTemplate({...videoTemplate, thumbnailUrl: e.target.value})} placeholder="https://...thumbnail.jpg" />
                     {videoTemplate.thumbnailUrl && <img src={videoTemplate.thumbnailUrl} className="media-preview" alt="thumb" onError={e => e.target.style.display="none"} />}
                   </div>
                 </div>
