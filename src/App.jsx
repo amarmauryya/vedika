@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { db } from "./firebase";
 import { collection, addDoc, doc, getDoc, setDoc } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
@@ -33,6 +33,12 @@ function App() {
     id: "user_name", type: "text", x: 100, y: 800, width: 880, height: 100,
     editable: true, dataKey: "user.name", text: "YOUR NAME",
     color: "#FFFFFF", fontSize: 60, fontFamily: "Inter", alignment: "center", fontWeight: "bold",
+  }]);
+
+  const [videoElements, setVideoElements] = useState([{
+    id: "user_name", type: "text", x: 60, y: 1600, width: 960, height: 120,
+    editable: true, dataKey: "user.name", text: "YOUR NAME",
+    color: "#FFFFFF", fontSize: 70, fontFamily: "Inter", alignment: "center", fontWeight: "bold",
   }]);
 
   const [tagInput, setTagInput] = useState("");
@@ -84,6 +90,21 @@ function App() {
     setElements(e);
   };
 
+  const addVideoElement = () => setVideoElements([...videoElements, {
+    id: `v_element_${videoElements.length + 1}`, type: "text", x: 0, y: 0,
+    width: 200, height: 80, editable: true, dataKey: "",
+    text: "New Text", color: "#FFFFFF", fontSize: 50,
+    fontFamily: "Inter", alignment: "left", fontWeight: "normal", mask: "", imageUrl: "",
+  }]);
+
+  const removeVideoElement = (i) => { const e = [...videoElements]; e.splice(i, 1); setVideoElements(e); };
+
+  const handleVideoElementChange = (i, f, value) => {
+    const e = [...videoElements];
+    e[i][f] = ["x","y","width","height","fontSize"].includes(f) ? Number(value) : value;
+    setVideoElements(e);
+  };
+
   const handleAddTag = (e) => {
     if (e.key === "Enter" && tagInput.trim()) {
       e.preventDefault();
@@ -119,7 +140,7 @@ function App() {
     try {
       await addDoc(collection(db, "templates"), {
         ...videoTemplate, backgroundUrl: videoTemplate.videoUrl, previewUrl: videoTemplate.thumbnailUrl,
-        elements: [{ id: "user_name", type: "text", x: 60, y: 1600, width: 960, height: 120, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 70, fontFamily: "Inter", alignment: "center", fontWeight: "bold" }],
+        elements: videoElements,
         createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
       });
       alert("Video Template uploaded!");
@@ -348,69 +369,119 @@ function App() {
         )}
 
         {view === "video" && (
-          <div className="video-view">
+          <div>
             <div className="page-header">
               <div className="page-header-icon video-icon-sm">🎬</div>
               <div>
                 <h1 className="page-title">Video Template</h1>
-                <p className="page-sub">Upload your MP4 video template with details</p>
+                <p className="page-sub">Upload your MP4 video template with elements</p>
               </div>
             </div>
-            <form onSubmit={handleVideoSubmit} className="single-col-form">
-              <div className="card">
-                <h3 className="card-title">Video Details</h3>
-                <div className="form-group">
-                  <label>Video Title *</label>
-                  <input required className="input" value={videoTemplate.title} onChange={e => setVideoTemplate({...videoTemplate, title: e.target.value})} placeholder="e.g. Independence Day Video 2024" />
-                </div>
-                <div className="two-inputs">
+            <form onSubmit={handleVideoSubmit} className="two-col-form">
+
+              {/* Left: Video Details */}
+              <div className="col-left">
+                <div className="card">
+                  <h3 className="card-title">Video Details</h3>
                   <div className="form-group">
-                    <label>Category</label>
-                    <select className="input" value={videoTemplate.categoryId} onChange={e => setVideoTemplate({...videoTemplate, categoryId: e.target.value})}>
-                      {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                    </select>
+                    <label>Video Title *</label>
+                    <input required className="input" value={videoTemplate.title} onChange={e => setVideoTemplate({...videoTemplate, title: e.target.value})} placeholder="e.g. Independence Day Video 2024" />
+                  </div>
+                  <div className="two-inputs">
+                    <div className="form-group">
+                      <label>Category</label>
+                      <select className="input" value={videoTemplate.categoryId} onChange={e => setVideoTemplate({...videoTemplate, categoryId: e.target.value})}>
+                        {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Sort Order</label>
+                      <input type="number" className="input" value={videoTemplate.sortOrder} onChange={e => setVideoTemplate({...videoTemplate, sortOrder: Number(e.target.value)})} />
+                    </div>
                   </div>
                   <div className="form-group">
-                    <label>Sort Order</label>
-                    <input type="number" className="input" value={videoTemplate.sortOrder} onChange={e => setVideoTemplate({...videoTemplate, sortOrder: Number(e.target.value)})} />
+                    <label>Tags (Enter to add)</label>
+                    <div className="tags-row">
+                      {videoTemplate.tags.map(t => (
+                        <span key={t} className="tag video-tag">
+                          {t} <button type="button" onClick={() => setVideoTemplate({...videoTemplate, tags: videoTemplate.tags.filter(x => x !== t)})}>✕</button>
+                        </span>
+                      ))}
+                    </div>
+                    <input className="input" placeholder="Type and press Enter..." value={videoTagInput} onChange={e => setVideoTagInput(e.target.value)} onKeyDown={handleVideoAddTag} />
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>Tags (Enter to add)</label>
-                  <div className="tags-row">
-                    {videoTemplate.tags.map(t => (
-                      <span key={t} className="tag video-tag">
-                        {t} <button type="button" onClick={() => setVideoTemplate({...videoTemplate, tags: videoTemplate.tags.filter(x => x !== t)})}>✕</button>
-                      </span>
-                    ))}
+
+                <div className="card">
+                  <h3 className="card-title">Video & Thumbnail</h3>
+                  <div className="form-group">
+                    <label>MP4 Video URL *</label>
+                    <input required className="input input-video" value={videoTemplate.videoUrl} onChange={e => setVideoTemplate({...videoTemplate, videoUrl: e.target.value})} placeholder="https://firebasestorage.../video.mp4" />
+                    <p className="hint">Firebase Storage ya kisi bhi direct MP4 URL paste karein</p>
                   </div>
-                  <input className="input" placeholder="Type and press Enter..." value={videoTagInput} onChange={e => setVideoTagInput(e.target.value)} onKeyDown={handleVideoAddTag} />
+                  {videoTemplate.videoUrl && (
+                    <div className="video-preview-wrap">
+                      <video src={videoTemplate.videoUrl} controls className="video-preview" />
+                      <div className="video-success">✅ Video loaded successfully</div>
+                    </div>
+                  )}
+                  <div className="form-group" style={{marginTop:"16px"}}>
+                    <label>Thumbnail URL <span className="optional">(optional — card preview ke liye)</span></label>
+                    <input className="input" value={videoTemplate.thumbnailUrl} onChange={e => setVideoTemplate({...videoTemplate, thumbnailUrl: e.target.value})} placeholder="https://...thumbnail.jpg" />
+                    {videoTemplate.thumbnailUrl && <img src={videoTemplate.thumbnailUrl} className="media-preview" alt="thumb" onError={e => e.target.style.display="none"} />}
+                  </div>
                 </div>
+
+                <button type="submit" disabled={loading} className="btn btn-video btn-block btn-lg">
+                  <Save size={18} /> {loading ? "Uploading..." : "Upload Video Template to Firebase"}
+                </button>
               </div>
 
-              <div className="card">
-                <h3 className="card-title">Video & Thumbnail</h3>
-                <div className="form-group">
-                  <label>MP4 Video URL *</label>
-                  <input required className="input input-video" value={videoTemplate.videoUrl} onChange={e => setVideoTemplate({...videoTemplate, videoUrl: e.target.value})} placeholder="https://firebasestorage.../video.mp4" />
-                  <p className="hint">Firebase Storage ya kisi bhi direct MP4 URL paste karein</p>
+              {/* Right: Video Elements Panel */}
+              <div className="col-right card elements-panel">
+                <div className="elements-header">
+                  <h3 className="card-title" style={{margin:0}}>Elements</h3>
+                  <button type="button" onClick={addVideoElement} className="btn btn-add-element" style={{background:"#fce4ec", color:"#e91e63"}}>
+                    <Plus size={14} /> Add Element
+                  </button>
                 </div>
-                {videoTemplate.videoUrl && (
-                  <div className="video-preview-wrap">
-                    <video src={videoTemplate.videoUrl} controls className="video-preview" />
-                    <div className="video-success">✅ Video loaded successfully</div>
+                {videoElements.map((el, i) => (
+                  <div key={i} className="element-card">
+                    <div className="element-header">
+                      <span className="element-label">ELEMENT {i+1} — {el.type.toUpperCase()}</span>
+                      <button type="button" onClick={() => removeVideoElement(i)} className="btn-remove"><Trash2 size={14}/></button>
+                    </div>
+                    <div className="two-inputs">
+                      <input placeholder="ID" className="input input-sm" value={el.id} onChange={e => handleVideoElementChange(i, "id", e.target.value)} />
+                      <select className="input input-sm" value={el.type} onChange={e => handleVideoElementChange(i, "type", e.target.value)}>
+                        <option value="text">Text</option><option value="image">Image</option>
+                      </select>
+                    </div>
+                    <div className="four-inputs">
+                      {["x","y","width","height"].map(k => <input key={k} type="number" placeholder={k.toUpperCase()} className="input input-sm" value={el[k]} onChange={e => handleVideoElementChange(i, k, e.target.value)} />)}
+                    </div>
+                    <div className="two-inputs" style={{alignItems:"center"}}>
+                      <input placeholder="Data Key (user.name)" className="input input-sm" value={el.dataKey} onChange={e => handleVideoElementChange(i, "dataKey", e.target.value)} />
+                      <label className="checkbox-label"><input type="checkbox" checked={el.editable} onChange={e => handleVideoElementChange(i, "editable", e.target.checked)} /> Editable</label>
+                    </div>
+                    {el.type === "text" && (
+                      <div className="text-controls">
+                        <input placeholder="Default Text" className="input input-sm" style={{flex:1}} value={el.text} onChange={e => handleVideoElementChange(i, "text", e.target.value)} />
+                        <input type="color" className="color-input" value={el.color} onChange={e => handleVideoElementChange(i, "color", e.target.value)} />
+                        <input type="number" placeholder="Sz" className="input input-sm" style={{width:"60px"}} value={el.fontSize} onChange={e => handleVideoElementChange(i, "fontSize", e.target.value)} />
+                        <select className="input input-sm" style={{width:"85px"}} value={el.alignment} onChange={e => handleVideoElementChange(i, "alignment", e.target.value)}>
+                          <option value="left">Left</option><option value="center">Center</option><option value="right">Right</option>
+                        </select>
+                      </div>
+                    )}
+                    {el.type === "image" && (
+                      <select className="input input-sm" value={el.mask} onChange={e => handleVideoElementChange(i, "mask", e.target.value)}>
+                        <option value="">No Mask</option><option value="circle">Circle</option><option value="rounded_rectangle">Rounded Rect</option>
+                      </select>
+                    )}
                   </div>
-                )}
-                <div className="form-group" style={{marginTop:"16px"}}>
-                  <label>Thumbnail URL <span className="optional">(optional — card preview ke liye)</span></label>
-                  <input className="input" value={videoTemplate.thumbnailUrl} onChange={e => setVideoTemplate({...videoTemplate, thumbnailUrl: e.target.value})} placeholder="https://...thumbnail.jpg" />
-                  {videoTemplate.thumbnailUrl && <img src={videoTemplate.thumbnailUrl} className="media-preview" alt="thumb" onError={e => e.target.style.display="none"} />}
-                </div>
+                ))}
               </div>
-
-              <button type="submit" disabled={loading} className="btn btn-video btn-block btn-lg">
-                <Save size={18} /> {loading ? "Uploading..." : "Upload Video Template to Firebase"}
-              </button>
             </form>
           </div>
         )}
