@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { db } from "./firebase";
+import { db, storage } from "./firebase";
 import { collection, addDoc, doc, getDoc, setDoc } from "firebase/firestore";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
 import { Plus, Trash2, Save, LogOut, UserPlus, ArrowLeft } from "lucide-react";
 import "./App.css";
@@ -120,6 +121,35 @@ function App() {
       if (!videoTemplate.tags.includes(videoTagInput.trim().toLowerCase()))
         setVideoTemplate({ ...videoTemplate, tags: [...videoTemplate.tags, videoTagInput.trim().toLowerCase()] });
       setVideoTagInput("");
+    }
+  };
+
+  const handleFileUpload = async (e, setTemplateFunc, templateState, urlField) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setLoading(true);
+    try {
+      const fileRef = ref(storage, `templates/${Date.now()}_${file.name}`);
+      const uploadTask = uploadBytesResumable(fileRef, file);
+      
+      uploadTask.on('state_changed', 
+        (snapshot) => {},
+        (error) => { alert("Upload error: " + error.message); setLoading(false); },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          if (urlField === "thumbnailUrl") {
+              setTemplateFunc({ ...templateState, [urlField]: downloadURL, previewUrl: downloadURL });
+          } else {
+              setTemplateFunc({ ...templateState, [urlField]: downloadURL });
+          }
+          setLoading(false);
+          alert("File uploaded to Firebase successfully!");
+        }
+      );
+    } catch (err) {
+      alert("Error: " + err.message);
+      setLoading(false);
     }
   };
 
@@ -301,12 +331,18 @@ function App() {
                 <div className="card">
                   <h3 className="card-title">Media URLs</h3>
                   <div className="form-group">
-                    <label>Background Image URL *</label>
+                    <label>Background Image * (Select file or paste URL)</label>
+                    <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTemplate, template, "backgroundUrl")} className="input" style={{flex: 1}} />
+                    </div>
                     <input required className="input" value={template.backgroundUrl} onChange={e => setTemplate({...template, backgroundUrl: e.target.value})} placeholder="https://firebasestorage.../image.jpg" />
                     {template.backgroundUrl && <img src={template.backgroundUrl} className="media-preview" alt="bg" onError={e => e.target.style.display="none"} />}
                   </div>
                   <div className="form-group">
-                    <label>Thumbnail URL <span className="optional">(optional)</span></label>
+                    <label>Thumbnail <span className="optional">(optional)</span></label>
+                    <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTemplate, template, "thumbnailUrl")} className="input" style={{flex: 1}} />
+                    </div>
                     <input className="input" value={template.thumbnailUrl} onChange={e => setTemplate({...template, thumbnailUrl: e.target.value, previewUrl: e.target.value})} placeholder="https://...thumb.jpg" />
                   </div>
                   <div className="two-inputs">
@@ -415,9 +451,12 @@ function App() {
                 <div className="card">
                   <h3 className="card-title">Video & Thumbnail</h3>
                   <div className="form-group">
-                    <label>MP4 Video URL *</label>
+                    <label>MP4 Video * (Select file or paste URL)</label>
+                    <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
+                      <input type="file" accept="video/mp4" onChange={(e) => handleFileUpload(e, setVideoTemplate, videoTemplate, "videoUrl")} className="input input-video" style={{flex: 1}} />
+                    </div>
                     <input required className="input input-video" value={videoTemplate.videoUrl} onChange={e => setVideoTemplate({...videoTemplate, videoUrl: e.target.value})} placeholder="https://firebasestorage.../video.mp4" />
-                    <p className="hint">Firebase Storage ya kisi bhi direct MP4 URL paste karein</p>
+                    <p className="hint">Direct file upload ya direct MP4 URL paste karein</p>
                   </div>
                   {videoTemplate.videoUrl && (
                     <div className="video-preview-wrap">
@@ -426,7 +465,10 @@ function App() {
                     </div>
                   )}
                   <div className="form-group" style={{marginTop:"16px"}}>
-                    <label>Thumbnail URL <span className="optional">(optional — card preview ke liye)</span></label>
+                    <label>Thumbnail <span className="optional">(optional — card preview ke liye)</span></label>
+                    <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setVideoTemplate, videoTemplate, "thumbnailUrl")} className="input" style={{flex: 1}} />
+                    </div>
                     <input className="input" value={videoTemplate.thumbnailUrl} onChange={e => setVideoTemplate({...videoTemplate, thumbnailUrl: e.target.value})} placeholder="https://...thumbnail.jpg" />
                     {videoTemplate.thumbnailUrl && <img src={videoTemplate.thumbnailUrl} className="media-preview" alt="thumb" onError={e => e.target.style.display="none"} />}
                   </div>
