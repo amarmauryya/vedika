@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react'
 import { db } from './firebase'
 import { collection, addDoc } from 'firebase/firestore'
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth'
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth'
+
+// List of allowed admin emails. Add new emails here to give them admin access.
+const ALLOWED_ADMINS = [
+  'ayushkft@gmail.com',
+]
 import { Plus, Trash2, Save, LogOut } from 'lucide-react'
 import './App.css'
 
@@ -60,7 +65,17 @@ function App() {
       const auth = getAuth()
       await signInWithEmailAndPassword(auth, email, password)
     } catch (error) {
-      alert("Login failed! " + error.message)
+      // If user doesn't exist, create it automatically
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+        try {
+          const auth = getAuth()
+          await createUserWithEmailAndPassword(auth, email, password)
+        } catch (createError) {
+          alert("Login/Signup failed! " + createError.message)
+        }
+      } else {
+        alert("Login failed! " + error.message)
+      }
     }
   }
 
@@ -161,6 +176,18 @@ function App() {
           </div>
           <button type="submit" style={{ width: '100%', padding: '0.75rem', backgroundColor: '#6200EE', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Login</button>
         </form>
+      </div>
+    )
+  }
+
+  if (user && !ALLOWED_ADMINS.includes(user.email?.toLowerCase())) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <h2>Access Denied</h2>
+        <p>Your email ({user.email}) is not authorized as an admin.</p>
+        <button onClick={() => signOut(getAuth())} style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#ff4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+          Logout
+        </button>
       </div>
     )
   }
