@@ -8,6 +8,82 @@ import "./App.css";
 
 const ALLOWED_ADMINS = ["ayushkft@gmail.com"];
 
+const IMAGE_LAYOUT_PRESETS = [
+  {
+    name: "Style 1: Name Bottom Center",
+    elements: [
+      { id: "user_name", type: "text", x: 100, y: 920, width: 880, height: 100, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 60, fontFamily: "Inter", alignment: "center", fontWeight: "bold" }
+    ]
+  },
+  {
+    name: "Style 2: Photo Left, Name Right",
+    elements: [
+      { id: "user_photo", type: "image", x: 80, y: 850, width: 200, height: 200, editable: true, dataKey: "user.photoUrl", mask: "circle" },
+      { id: "user_name", type: "text", x: 300, y: 900, width: 700, height: 100, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 50, fontFamily: "Inter", alignment: "left", fontWeight: "bold" }
+    ]
+  },
+  {
+    name: "Style 3: Photo Right, Name Left",
+    elements: [
+      { id: "user_name", type: "text", x: 80, y: 900, width: 700, height: 100, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 50, fontFamily: "Inter", alignment: "right", fontWeight: "bold" },
+      { id: "user_photo", type: "image", x: 800, y: 850, width: 200, height: 200, editable: true, dataKey: "user.photoUrl", mask: "circle" }
+    ]
+  },
+  {
+    name: "Style 4: Name + Business Name",
+    elements: [
+      { id: "user_name", type: "text", x: 100, y: 850, width: 880, height: 80, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 55, fontFamily: "Inter", alignment: "center", fontWeight: "bold" },
+      { id: "business_name", type: "text", x: 100, y: 940, width: 880, height: 60, editable: true, dataKey: "user.businessName", text: "BUSINESS NAME", color: "#FFD700", fontSize: 40, fontFamily: "Inter", alignment: "center", fontWeight: "normal" }
+    ]
+  },
+  {
+    name: "Style 5: Full Contact Info",
+    elements: [
+      { id: "user_name", type: "text", x: 100, y: 800, width: 880, height: 80, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 50, fontFamily: "Inter", alignment: "center", fontWeight: "bold" },
+      { id: "phone", type: "text", x: 100, y: 890, width: 880, height: 60, editable: true, dataKey: "user.phone", text: "📞 9876543210", color: "#FFFFFF", fontSize: 40, fontFamily: "Inter", alignment: "center", fontWeight: "normal" },
+      { id: "email", type: "text", x: 100, y: 960, width: 880, height: 60, editable: true, dataKey: "user.email", text: "✉️ email@example.com", color: "#FFFFFF", fontSize: 35, fontFamily: "Inter", alignment: "center", fontWeight: "normal" }
+    ]
+  },
+  {
+    name: "Style 6: Logo Top Right, Name Bottom",
+    elements: [
+      { id: "user_logo", type: "image", x: 850, y: 50, width: 180, height: 180, editable: true, dataKey: "user.photoUrl", mask: "none" },
+      { id: "user_name", type: "text", x: 100, y: 920, width: 880, height: 100, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 60, fontFamily: "Inter", alignment: "center", fontWeight: "bold" }
+    ]
+  },
+  {
+    name: "Style 7: Empty (No Elements)",
+    elements: []
+  }
+];
+
+const VIDEO_LAYOUT_PRESETS = [
+  {
+    name: "Video Style 1: Name Bottom Center",
+    elements: [
+      { id: "user_name", type: "text", x: 60, y: 1700, width: 960, height: 120, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 70, fontFamily: "Inter", alignment: "center", fontWeight: "bold" }
+    ]
+  },
+  {
+    name: "Video Style 2: Photo + Name Bottom",
+    elements: [
+      { id: "user_photo", type: "image", x: 60, y: 1650, width: 220, height: 220, editable: true, dataKey: "user.photoUrl", mask: "circle" },
+      { id: "user_name", type: "text", x: 300, y: 1720, width: 720, height: 100, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 60, fontFamily: "Inter", alignment: "left", fontWeight: "bold" }
+    ]
+  },
+  {
+    name: "Video Style 3: Name & Business Details",
+    elements: [
+      { id: "user_name", type: "text", x: 60, y: 1600, width: 960, height: 100, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 65, fontFamily: "Inter", alignment: "center", fontWeight: "bold" },
+      { id: "business", type: "text", x: 60, y: 1720, width: 960, height: 80, editable: true, dataKey: "user.businessName", text: "BUSINESS NAME", color: "#FFD700", fontSize: 50, fontFamily: "Inter", alignment: "center", fontWeight: "normal" }
+    ]
+  },
+  {
+    name: "Video Style 4: Empty (No Elements)",
+    elements: []
+  }
+];
+
 function App() {
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -362,6 +438,18 @@ function App() {
                     <Plus size={14} /> Add Element
                   </button>
                 </div>
+                <div className="form-group" style={{marginTop: "12px"}}>
+                  <label>Apply Design Layout Preset:</label>
+                  <select className="input" onChange={(e) => {
+                    const preset = IMAGE_LAYOUT_PRESETS.find(p => p.name === e.target.value);
+                    if (preset) setElements(JSON.parse(JSON.stringify(preset.elements)));
+                  }}>
+                    <option value="">-- Select a Preset Style --</option>
+                    {IMAGE_LAYOUT_PRESETS.map((p, i) => (
+                      <option key={i} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
                 {elements.map((el, i) => (
                   <div key={i} className="element-card">
                     <div className="element-header">
@@ -482,6 +570,18 @@ function App() {
                   <button type="button" onClick={addVideoElement} className="btn btn-add-element" style={{background:"#fce4ec", color:"#e91e63"}}>
                     <Plus size={14} /> Add Element
                   </button>
+                </div>
+                <div className="form-group" style={{marginTop: "12px"}}>
+                  <label>Apply Design Layout Preset:</label>
+                  <select className="input" onChange={(e) => {
+                    const preset = VIDEO_LAYOUT_PRESETS.find(p => p.name === e.target.value);
+                    if (preset) setVideoElements(JSON.parse(JSON.stringify(preset.elements)));
+                  }}>
+                    <option value="">-- Select a Preset Style --</option>
+                    {VIDEO_LAYOUT_PRESETS.map((p, i) => (
+                      <option key={i} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
                 </div>
                 {videoElements.map((el, i) => (
                   <div key={i} className="element-card">
