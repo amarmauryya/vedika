@@ -85,7 +85,8 @@ const VIDEO_LAYOUT_PRESETS = [
 ];
 
 const TemplatePreview = ({ backgroundUrl, canvasWidth, canvasHeight, elements }) => {
-  if (!backgroundUrl) return null;
+  const bg = backgroundUrl || 'https://via.placeholder.com/1080x1080.png?text=Upload+Background+Image';
+  
   
   const previewWidth = 1000; // use a large width and CSS will scale it
   const scale = canvasWidth > 0 ? previewWidth / canvasWidth : 1;
@@ -104,7 +105,7 @@ const TemplatePreview = ({ backgroundUrl, canvasWidth, canvasHeight, elements })
       <div style={{
         width: '100%',
         aspectRatio: `${canvasWidth}/${canvasHeight}`,
-        backgroundImage: `url(${backgroundUrl})`,
+        backgroundImage: `url(${bg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         position: 'relative',
@@ -519,14 +520,12 @@ function App() {
                     <div className="form-group"><label>Canvas H</label><input type="number" className="input" value={template.canvasHeight} onChange={e => setTemplate({...template, canvasHeight: Number(e.target.value)})} /></div>
                   </div>
                   
-                  {template.backgroundUrl && (
-                    <TemplatePreview 
-                      backgroundUrl={template.backgroundUrl} 
-                      canvasWidth={template.canvasWidth} 
-                      canvasHeight={template.canvasHeight} 
-                      elements={elements} 
-                    />
-                  )}
+                  <TemplatePreview 
+                    backgroundUrl={template.backgroundUrl} 
+                    canvasWidth={template.canvasWidth} 
+                    canvasHeight={template.canvasHeight} 
+                    elements={elements} 
+                  />
                 </div>
 
                 <button type="submit" disabled={loading} className="btn btn-image btn-block btn-lg">
