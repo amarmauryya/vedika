@@ -87,56 +87,61 @@ const VIDEO_LAYOUT_PRESETS = [
 const TemplatePreview = ({ backgroundUrl, canvasWidth, canvasHeight, elements }) => {
   const bg = backgroundUrl || 'https://via.placeholder.com/1080x1080.png?text=Upload+Background+Image';
   
-  
-  const previewWidth = 1000; // use a large width and CSS will scale it
-  const scale = canvasWidth > 0 ? previewWidth / canvasWidth : 1;
-  const previewHeight = canvasHeight * scale;
+  // Use a fixed max width for the preview area
+  const containerMaxWidth = 400; 
+  // Calculate the scale needed to fit the actual canvas inside the container
+  const scale = canvasWidth > 0 ? Math.min(containerMaxWidth / canvasWidth, 1) : 1;
+  const containerHeight = canvasHeight * scale;
 
   return (
     <div style={{
       width: '100%',
-      maxWidth: '400px',
+      maxWidth: `${containerMaxWidth}px`,
+      height: `${containerHeight}px`,
       margin: '16px auto',
       border: '2px dashed #4CAF50',
       borderRadius: '8px',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      position: 'relative',
+      backgroundColor: '#f5f5f5'
     }}>
-      <h4 style={{textAlign: 'center', margin: '8px 0'}}>Live Layout Preview</h4>
+      <h4 style={{textAlign: 'center', margin: '4px 0', fontSize: '12px', zIndex: 10, position: 'absolute', width: '100%'}}>Live Layout Preview</h4>
       <div style={{
-        width: '100%',
-        aspectRatio: `${canvasWidth}/${canvasHeight}`,
-        backgroundImage: `url(${bg})`,
-        backgroundSize: 'cover',
+        width: `${canvasWidth}px`,
+        height: `${canvasHeight}px`,
+        backgroundImage: `url("${bg}")`,
+        backgroundSize: '100% 100%',
         backgroundPosition: 'center',
-        position: 'relative',
-        backgroundColor: '#eee'
+        backgroundRepeat: 'no-repeat',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        transform: `scale(${scale})`,
+        transformOrigin: 'top left',
+        backgroundColor: '#ccc'
       }}>
         {elements.map((el, i) => {
-          // Calculate percentage-based positions to automatically scale
-          const leftPct = (el.x / canvasWidth) * 100;
-          const topPct = (el.y / canvasHeight) * 100;
-          const widthPct = (el.width / canvasWidth) * 100;
-          const heightPct = (el.height / canvasHeight) * 100;
-          
           if (el.type === 'text') {
             return (
               <div key={i} style={{
                 position: 'absolute',
-                left: `${leftPct}%`,
-                top: `${topPct}%`,
-                width: `${widthPct}%`,
-                height: `${heightPct}%`,
+                left: `${el.x}px`,
+                top: `${el.y}px`,
+                width: `${el.width}px`,
+                height: `${el.height}px`,
                 color: el.color || '#FFFFFF',
-                fontSize: `${(el.fontSize / canvasWidth) * 100}cqi`, // Approximate font scaling
+                fontSize: `${el.fontSize}px`,
                 fontFamily: el.fontFamily || 'Inter',
                 fontWeight: el.fontWeight === 'bold' ? 'bold' : 'normal',
                 textAlign: el.alignment || 'left',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: el.alignment === 'center' ? 'center' : el.alignment === 'right' ? 'flex-end' : 'flex-start',
-                border: '1px solid rgba(255,255,255,0.6)',
-                backgroundColor: 'rgba(0,0,0,0.1)',
-                containerType: 'inline-size'
+                border: '2px dotted rgba(255,255,255,0.8)',
+                backgroundColor: 'rgba(0,0,0,0.2)',
+                textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden'
               }}>
                 {el.text || 'Text'}
               </div>
@@ -145,19 +150,20 @@ const TemplatePreview = ({ backgroundUrl, canvasWidth, canvasHeight, elements })
             return (
               <div key={i} style={{
                 position: 'absolute',
-                left: `${leftPct}%`,
-                top: `${topPct}%`,
-                width: `${widthPct}%`,
-                height: `${heightPct}%`,
+                left: `${el.x}px`,
+                top: `${el.y}px`,
+                width: `${el.width}px`,
+                height: `${el.height}px`,
                 backgroundColor: 'rgba(255,255,255,0.4)',
                 borderRadius: el.mask === 'circle' ? '50%' : el.mask === 'rounded_rectangle' ? '10%' : '0',
-                border: '1px solid rgba(255,255,255,0.8)',
+                border: '2px solid rgba(255,255,255,0.9)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#333',
-                fontSize: '12px',
-                fontWeight: 'bold'
+                fontSize: '24px',
+                fontWeight: 'bold',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.3)'
               }}>
                 Photo
               </div>
