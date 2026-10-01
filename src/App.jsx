@@ -472,7 +472,7 @@ function App() {
                 <p className="page-sub">Fill in the details and upload your poster template</p>
               </div>
             </div>
-            <form onSubmit={handleSubmit} className="two-col-form">
+            <form onSubmit={handleSubmit} className="three-col-form">
               <div className="col-left">
                 <div className="card">
                   <h3 className="card-title">Template Details</h3>
@@ -525,18 +525,19 @@ function App() {
                     <div className="form-group"><label>Canvas W</label><input type="number" className="input" value={template.canvasWidth} onChange={e => setTemplate({...template, canvasWidth: Number(e.target.value)})} /></div>
                     <div className="form-group"><label>Canvas H</label><input type="number" className="input" value={template.canvasHeight} onChange={e => setTemplate({...template, canvasHeight: Number(e.target.value)})} /></div>
                   </div>
-                  
-                  <TemplatePreview 
-                    backgroundUrl={template.backgroundUrl} 
-                    canvasWidth={template.canvasWidth} 
-                    canvasHeight={template.canvasHeight} 
-                    elements={elements} 
-                  />
                 </div>
-
                 <button type="submit" disabled={loading} className="btn btn-image btn-block btn-lg">
                   <Save size={18} /> {loading ? "Uploading..." : "Upload Image Template"}
                 </button>
+              </div>
+
+              <div className="col-preview">
+                <TemplatePreview 
+                  backgroundUrl={template.backgroundUrl} 
+                  canvasWidth={template.canvasWidth} 
+                  canvasHeight={template.canvasHeight} 
+                  elements={elements} 
+                />
               </div>
 
               <div className="col-right card elements-panel">
@@ -608,7 +609,7 @@ function App() {
                 <p className="page-sub">Upload your MP4 video template with elements</p>
               </div>
             </div>
-            <form onSubmit={handleVideoSubmit} className="two-col-form">
+            <form onSubmit={handleVideoSubmit} className="three-col-form">
 
               {/* Left: Video Details */}
               <div className="col-left">
@@ -669,6 +670,15 @@ function App() {
                 <button type="submit" disabled={loading} className="btn btn-video btn-block btn-lg">
                   <Save size={18} /> {loading ? "Uploading..." : "Upload Video Template to Firebase"}
                 </button>
+              </div>
+
+              <div className="col-preview">
+                <TemplatePreview 
+                  backgroundUrl={videoTemplate.videoUrl} 
+                  canvasWidth={videoTemplate.canvasWidth} 
+                  canvasHeight={videoTemplate.canvasHeight} 
+                  elements={videoElements} 
+                />
               </div>
 
               {/* Right: Video Elements Panel */}
