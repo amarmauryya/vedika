@@ -1,0 +1,725 @@
+import { useState, useEffect } from "react";
+import { db, storage } from "./firebase";
+import { collection, addDoc, doc, getDoc, setDoc } from "firebase/firestore";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
+import { Plus, Trash2, Save, LogOut, UserPlus, ArrowLeft } from "lucide-react";
+import "./App.css";
+
+const ALLOWED_ADMINS = ["ayushkft@gmail.com"];
+
+const IMAGE_LAYOUT_PRESETS = [
+  {
+    name: "Style 1: Name Bottom Center",
+    elements: [
+      { id: "user_name", type: "text", x: 100, y: 920, width: 880, height: 100, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 60, fontFamily: "Inter", alignment: "center", fontWeight: "bold" }
+    ]
+  },
+  {
+    name: "Style 2: Photo Left, Name Right",
+    elements: [
+      { id: "user_photo", type: "image", x: 80, y: 850, width: 200, height: 200, editable: true, dataKey: "user.photoUrl", mask: "circle" },
+      { id: "user_name", type: "text", x: 300, y: 900, width: 700, height: 100, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 50, fontFamily: "Inter", alignment: "left", fontWeight: "bold" }
+    ]
+  },
+  {
+    name: "Style 3: Photo Right, Name Left",
+    elements: [
+      { id: "user_name", type: "text", x: 80, y: 900, width: 700, height: 100, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 50, fontFamily: "Inter", alignment: "right", fontWeight: "bold" },
+      { id: "user_photo", type: "image", x: 800, y: 850, width: 200, height: 200, editable: true, dataKey: "user.photoUrl", mask: "circle" }
+    ]
+  },
+  {
+    name: "Style 4: Name + Business Name",
+    elements: [
+      { id: "user_name", type: "text", x: 100, y: 850, width: 880, height: 80, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 55, fontFamily: "Inter", alignment: "center", fontWeight: "bold" },
+      { id: "business_name", type: "text", x: 100, y: 940, width: 880, height: 60, editable: true, dataKey: "user.businessName", text: "BUSINESS NAME", color: "#FFD700", fontSize: 40, fontFamily: "Inter", alignment: "center", fontWeight: "normal" }
+    ]
+  },
+  {
+    name: "Style 5: Full Contact Info",
+    elements: [
+      { id: "user_name", type: "text", x: 100, y: 800, width: 880, height: 80, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 50, fontFamily: "Inter", alignment: "center", fontWeight: "bold" },
+      { id: "phone", type: "text", x: 100, y: 890, width: 880, height: 60, editable: true, dataKey: "user.phone", text: "📞 9876543210", color: "#FFFFFF", fontSize: 40, fontFamily: "Inter", alignment: "center", fontWeight: "normal" },
+      { id: "email", type: "text", x: 100, y: 960, width: 880, height: 60, editable: true, dataKey: "user.email", text: "✉️ email@example.com", color: "#FFFFFF", fontSize: 35, fontFamily: "Inter", alignment: "center", fontWeight: "normal" }
+    ]
+  },
+  {
+    name: "Style 6: Logo Top Right, Name Bottom",
+    elements: [
+      { id: "user_logo", type: "image", x: 850, y: 50, width: 180, height: 180, editable: true, dataKey: "user.photoUrl", mask: "none" },
+      { id: "user_name", type: "text", x: 100, y: 920, width: 880, height: 100, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 60, fontFamily: "Inter", alignment: "center", fontWeight: "bold" }
+    ]
+  },
+  {
+    name: "Style 7: Empty (No Elements)",
+    elements: []
+  }
+];
+
+const VIDEO_LAYOUT_PRESETS = [
+  {
+    name: "Video Style 1: Name Bottom Center",
+    elements: [
+      { id: "user_name", type: "text", x: 60, y: 1700, width: 960, height: 120, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 70, fontFamily: "Inter", alignment: "center", fontWeight: "bold" }
+    ]
+  },
+  {
+    name: "Video Style 2: Photo + Name Bottom",
+    elements: [
+      { id: "user_photo", type: "image", x: 60, y: 1650, width: 220, height: 220, editable: true, dataKey: "user.photoUrl", mask: "circle" },
+      { id: "user_name", type: "text", x: 300, y: 1720, width: 720, height: 100, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 60, fontFamily: "Inter", alignment: "left", fontWeight: "bold" }
+    ]
+  },
+  {
+    name: "Video Style 3: Name & Business Details",
+    elements: [
+      { id: "user_name", type: "text", x: 60, y: 1600, width: 960, height: 100, editable: true, dataKey: "user.name", text: "YOUR NAME", color: "#FFFFFF", fontSize: 65, fontFamily: "Inter", alignment: "center", fontWeight: "bold" },
+      { id: "business", type: "text", x: 60, y: 1720, width: 960, height: 80, editable: true, dataKey: "user.businessName", text: "BUSINESS NAME", color: "#FFD700", fontSize: 50, fontFamily: "Inter", alignment: "center", fontWeight: "normal" }
+    ]
+  },
+  {
+    name: "Video Style 4: Empty (No Elements)",
+    elements: []
+  }
+];
+
+const TemplatePreview = ({ backgroundUrl, canvasWidth, canvasHeight, elements }) => {
+  if (!backgroundUrl) return null;
+  
+  const previewWidth = 1000; // use a large width and CSS will scale it
+  const scale = canvasWidth > 0 ? previewWidth / canvasWidth : 1;
+  const previewHeight = canvasHeight * scale;
+
+  return (
+    <div style={{
+      width: '100%',
+      maxWidth: '400px',
+      margin: '16px auto',
+      border: '2px dashed #4CAF50',
+      borderRadius: '8px',
+      overflow: 'hidden'
+    }}>
+      <h4 style={{textAlign: 'center', margin: '8px 0'}}>Live Layout Preview</h4>
+      <div style={{
+        width: '100%',
+        aspectRatio: `${canvasWidth}/${canvasHeight}`,
+        backgroundImage: `url(${backgroundUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        position: 'relative',
+        backgroundColor: '#eee'
+      }}>
+        {elements.map((el, i) => {
+          // Calculate percentage-based positions to automatically scale
+          const leftPct = (el.x / canvasWidth) * 100;
+          const topPct = (el.y / canvasHeight) * 100;
+          const widthPct = (el.width / canvasWidth) * 100;
+          const heightPct = (el.height / canvasHeight) * 100;
+          
+          if (el.type === 'text') {
+            return (
+              <div key={i} style={{
+                position: 'absolute',
+                left: `${leftPct}%`,
+                top: `${topPct}%`,
+                width: `${widthPct}%`,
+                height: `${heightPct}%`,
+                color: el.color || '#FFFFFF',
+                fontSize: `${(el.fontSize / canvasWidth) * 100}cqi`, // Approximate font scaling
+                fontFamily: el.fontFamily || 'Inter',
+                fontWeight: el.fontWeight === 'bold' ? 'bold' : 'normal',
+                textAlign: el.alignment || 'left',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: el.alignment === 'center' ? 'center' : el.alignment === 'right' ? 'flex-end' : 'flex-start',
+                border: '1px solid rgba(255,255,255,0.6)',
+                backgroundColor: 'rgba(0,0,0,0.1)',
+                containerType: 'inline-size'
+              }}>
+                {el.text || 'Text'}
+              </div>
+            );
+          } else if (el.type === 'image') {
+            return (
+              <div key={i} style={{
+                position: 'absolute',
+                left: `${leftPct}%`,
+                top: `${topPct}%`,
+                width: `${widthPct}%`,
+                height: `${heightPct}%`,
+                backgroundColor: 'rgba(255,255,255,0.4)',
+                borderRadius: el.mask === 'circle' ? '50%' : el.mask === 'rounded_rectangle' ? '10%' : '0',
+                border: '1px solid rgba(255,255,255,0.8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#333',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }}>
+                Photo
+              </div>
+            );
+          }
+          return null;
+        })}
+      </div>
+    </div>
+  );
+};
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authLoading, setAuthLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [view, setView] = useState("select");
+
+  const [template, setTemplate] = useState({
+    title: "", categoryId: "festival", tags: [], language: "en",
+    thumbnailUrl: "", previewUrl: "", backgroundUrl: "",
+    canvasWidth: 1080, canvasHeight: 1080, isActive: true, isVideo: false, sortOrder: 0,
+  });
+
+  const [videoTemplate, setVideoTemplate] = useState({
+    title: "", categoryId: "festival", tags: [], language: "en",
+    videoUrl: "", thumbnailUrl: "",
+    canvasWidth: 1080, canvasHeight: 1920, isActive: true, isVideo: true, sortOrder: 0,
+  });
+
+  const [elements, setElements] = useState([{
+    id: "user_name", type: "text", x: 100, y: 800, width: 880, height: 100,
+    editable: true, dataKey: "user.name", text: "YOUR NAME",
+    color: "#FFFFFF", fontSize: 60, fontFamily: "Inter", alignment: "center", fontWeight: "bold",
+  }]);
+
+  const [videoElements, setVideoElements] = useState([{
+    id: "user_name", type: "text", x: 60, y: 1600, width: 960, height: 120,
+    editable: true, dataKey: "user.name", text: "YOUR NAME",
+    color: "#FFFFFF", fontSize: 70, fontFamily: "Inter", alignment: "center", fontWeight: "bold",
+  }]);
+
+  const [tagInput, setTagInput] = useState("");
+  const [videoTagInput, setVideoTagInput] = useState("");
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u) {
+        if (ALLOWED_ADMINS.includes(u.email?.toLowerCase())) {
+          setIsAdmin(true);
+        } else {
+          try {
+            const snap = await getDoc(doc(db, "config", "admins"));
+            setIsAdmin(snap.exists() && snap.data().emails?.includes(u.email?.toLowerCase()));
+          } catch { setIsAdmin(false); }
+        }
+      }
+      setAuthLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      await signInWithEmailAndPassword(getAuth(), email, password);
+    } catch (err) {
+      if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found") {
+        try { await createUserWithEmailAndPassword(getAuth(), email, password); }
+        catch (e2) { alert("Login failed: " + e2.message); }
+      } else { alert("Login failed: " + err.message); }
+    }
+  };
+
+  const addElement = () => setElements([...elements, {
+    id: `element_${elements.length + 1}`, type: "text", x: 0, y: 0,
+    width: 200, height: 50, editable: true, dataKey: "",
+    text: "New Text", color: "#FFFFFF", fontSize: 40,
+    fontFamily: "Inter", alignment: "left", fontWeight: "normal", mask: "", imageUrl: "",
+  }]);
+
+  const removeElement = (i) => { const e = [...elements]; e.splice(i, 1); setElements(e); };
+
+  const handleElementChange = (i, f, value) => {
+    const e = [...elements];
+    e[i][f] = ["x","y","width","height","fontSize"].includes(f) ? Number(value) : value;
+    setElements(e);
+  };
+
+  const addVideoElement = () => setVideoElements([...videoElements, {
+    id: `v_element_${videoElements.length + 1}`, type: "text", x: 0, y: 0,
+    width: 200, height: 80, editable: true, dataKey: "",
+    text: "New Text", color: "#FFFFFF", fontSize: 50,
+    fontFamily: "Inter", alignment: "left", fontWeight: "normal", mask: "", imageUrl: "",
+  }]);
+
+  const removeVideoElement = (i) => { const e = [...videoElements]; e.splice(i, 1); setVideoElements(e); };
+
+  const handleVideoElementChange = (i, f, value) => {
+    const e = [...videoElements];
+    e[i][f] = ["x","y","width","height","fontSize"].includes(f) ? Number(value) : value;
+    setVideoElements(e);
+  };
+
+  const handleAddTag = (e) => {
+    if (e.key === "Enter" && tagInput.trim()) {
+      e.preventDefault();
+      if (!template.tags.includes(tagInput.trim().toLowerCase()))
+        setTemplate({ ...template, tags: [...template.tags, tagInput.trim().toLowerCase()] });
+      setTagInput("");
+    }
+  };
+
+  const handleVideoAddTag = (e) => {
+    if (e.key === "Enter" && videoTagInput.trim()) {
+      e.preventDefault();
+      if (!videoTemplate.tags.includes(videoTagInput.trim().toLowerCase()))
+        setVideoTemplate({ ...videoTemplate, tags: [...videoTemplate.tags, videoTagInput.trim().toLowerCase()] });
+      setVideoTagInput("");
+    }
+  };
+
+  const handleFileUpload = async (e, setTemplateFunc, templateState, urlField) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setLoading(true);
+    try {
+      const fileRef = ref(storage, `templates/${Date.now()}_${file.name}`);
+      const uploadTask = uploadBytesResumable(fileRef, file);
+      
+      uploadTask.on('state_changed', 
+        (snapshot) => {},
+        (error) => { alert("Upload error: " + error.message); setLoading(false); },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          if (urlField === "thumbnailUrl") {
+              setTemplateFunc({ ...templateState, [urlField]: downloadURL, previewUrl: downloadURL });
+          } else {
+              setTemplateFunc({ ...templateState, [urlField]: downloadURL });
+          }
+          setLoading(false);
+          alert("File uploaded to Firebase successfully!");
+        }
+      );
+    } catch (err) {
+      alert("Error: " + err.message);
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault(); setLoading(true);
+    try {
+      await addDoc(collection(db, "templates"), { ...template, elements, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      alert("Image Template uploaded!");
+      setTemplate({ ...template, title: "", backgroundUrl: "", thumbnailUrl: "", previewUrl: "", tags: [] });
+    } catch (err) { alert("Error: " + err.message); }
+    setLoading(false);
+  };
+
+  const handleVideoSubmit = async (e) => {
+    e.preventDefault();
+    if (!videoTemplate.videoUrl.trim()) { alert("MP4 Video URL required!"); return; }
+    setLoading(true);
+    try {
+      await addDoc(collection(db, "templates"), {
+        ...videoTemplate, backgroundUrl: videoTemplate.videoUrl, previewUrl: videoTemplate.thumbnailUrl,
+        elements: videoElements,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      });
+      alert("Video Template uploaded!");
+      setVideoTemplate({ ...videoTemplate, title: "", videoUrl: "", thumbnailUrl: "", tags: [] });
+    } catch (err) { alert("Error: " + err.message); }
+    setLoading(false);
+  };
+
+  const handleAddAdmin = async () => {
+    if (!newAdminEmail.trim()) return;
+    try {
+      const ref = doc(db, "config", "admins");
+      const snap = await getDoc(ref);
+      const emails = snap.exists() ? (snap.data().emails || []) : [];
+      if (!emails.includes(newAdminEmail.trim().toLowerCase())) {
+        emails.push(newAdminEmail.trim().toLowerCase());
+        await setDoc(ref, { emails }, { merge: true });
+        alert(`Admin access granted to ${newAdminEmail}!`);
+        setNewAdminEmail("");
+      } else alert("Already an admin!");
+    } catch (e) { alert("Error: " + e.message); }
+  };
+
+  const CATEGORIES = [
+    { value: "festival", label: "Festival" }, { value: "birthday", label: "Birthday" },
+    { value: "business", label: "Business" }, { value: "good_morning", label: "Good Morning" },
+    { value: "motivational", label: "Motivational" }, { value: "political", label: "Political" },
+  ];
+
+  if (authLoading) return <div className="loading-screen"><div className="spinner"></div><p>Loading...</p></div>;
+
+  if (!user) return (
+    <div className="login-bg">
+      <form className="login-card" onSubmit={handleLogin}>
+        <div className="login-logo">
+          <span>प</span>
+        </div>
+        <h2>Post Parchaar Admin</h2>
+        <p className="login-sub">Sign in to manage templates</p>
+        <div className="form-group">
+          <label>Email</label>
+          <input type="email" required className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@example.com" />
+        </div>
+        <div className="form-group">
+          <label>Password</label>
+          <input type="password" required className="input" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+        </div>
+        <button type="submit" className="btn btn-primary btn-block">Sign In</button>
+      </form>
+    </div>
+  );
+
+  if (user && !isAdmin) return (
+    <div className="access-denied">
+      <div className="denied-icon">🚫</div>
+      <h2>Access Denied</h2>
+      <p>{user.email} is not authorized.</p>
+      <button onClick={() => signOut(getAuth())} className="btn btn-danger">Logout</button>
+    </div>
+  );
+
+  return (
+    <div className="admin-app">
+      <header className="topbar">
+        <div className="topbar-left">
+          {view !== "select" && (
+            <button className="back-btn" onClick={() => setView("select")}>
+              <ArrowLeft size={16} /> Back
+            </button>
+          )}
+          <div className="brand">
+            <div className="brand-logo">प</div>
+            <div>
+              <div className="brand-name">Post Parchaar</div>
+              <div className="brand-sub">Admin Dashboard</div>
+            </div>
+          </div>
+        </div>
+        <div className="topbar-right">
+          <div className="add-admin-box">
+            <input type="email" placeholder="Add admin email..." value={newAdminEmail} onChange={e => setNewAdminEmail(e.target.value)} className="add-admin-input" />
+            <button onClick={handleAddAdmin} className="btn btn-success btn-sm">
+              <UserPlus size={14} /> Add
+            </button>
+          </div>
+          <span className="user-email">{user.email}</span>
+          <button onClick={() => signOut(getAuth())} className="btn btn-outline-danger btn-sm">
+            <LogOut size={14} /> Logout
+          </button>
+        </div>
+      </header>
+
+      <main className="main-content">
+
+        {view === "select" && (
+          <div className="select-view">
+            <h1 className="page-title">Create New Template</h1>
+            <p className="page-sub">Choose the type of template you want to upload</p>
+            <div className="template-type-grid">
+              <div className="type-card image-card" onClick={() => setView("image")}>
+                <div className="type-card-icon image-icon">🖼️</div>
+                <h2>Image Template</h2>
+                <p>Upload poster templates with image background, text and logo elements</p>
+                <div className="type-card-btn image-btn">Create Image Template →</div>
+              </div>
+              <div className="type-card video-card" onClick={() => setView("video")}>
+                <div className="type-card-icon video-icon">🎬</div>
+                <h2>Video Template</h2>
+                <p>Upload video templates with MP4 background and overlay text elements</p>
+                <div className="type-card-btn video-btn">Create Video Template →</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {view === "image" && (
+          <div>
+            <div className="page-header">
+              <div className="page-header-icon image-icon-sm">🖼️</div>
+              <div>
+                <h1 className="page-title">Image Template</h1>
+                <p className="page-sub">Fill in the details and upload your poster template</p>
+              </div>
+            </div>
+            <form onSubmit={handleSubmit} className="two-col-form">
+              <div className="col-left">
+                <div className="card">
+                  <h3 className="card-title">Template Details</h3>
+                  <div className="form-group">
+                    <label>Title *</label>
+                    <input required className="input" value={template.title} onChange={e => setTemplate({...template, title: e.target.value})} placeholder="e.g. Diwali Poster 2024" />
+                  </div>
+                  <div className="two-inputs">
+                    <div className="form-group">
+                      <label>Category</label>
+                      <select className="input" value={template.categoryId} onChange={e => setTemplate({...template, categoryId: e.target.value})}>
+                        {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Sort Order</label>
+                      <input type="number" className="input" value={template.sortOrder} onChange={e => setTemplate({...template, sortOrder: Number(e.target.value)})} />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Tags (Enter to add)</label>
+                    <div className="tags-row">
+                      {template.tags.map(t => (
+                        <span key={t} className="tag image-tag">
+                          {t} <button type="button" onClick={() => setTemplate({...template, tags: template.tags.filter(x => x !== t)})}>✕</button>
+                        </span>
+                      ))}
+                    </div>
+                    <input className="input" placeholder="Type and press Enter..." value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleAddTag} />
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h3 className="card-title">Media URLs</h3>
+                  <div className="form-group">
+                    <label>Background Image *</label>
+                    <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTemplate, template, "backgroundUrl")} className="input" style={{flex: 1}} />
+                    </div>
+                    {template.backgroundUrl && <img src={template.backgroundUrl} className="media-preview" alt="bg" onError={e => e.target.style.display="none"} />}
+                  </div>
+                  <div className="form-group">
+                    <label>Thumbnail <span className="optional">(optional)</span></label>
+                    <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTemplate, template, "thumbnailUrl")} className="input" style={{flex: 1}} />
+                    </div>
+                    {template.thumbnailUrl && <img src={template.thumbnailUrl} className="media-preview" alt="thumb" onError={e => e.target.style.display="none"} />}
+                  </div>
+                  <div className="two-inputs">
+                    <div className="form-group"><label>Canvas W</label><input type="number" className="input" value={template.canvasWidth} onChange={e => setTemplate({...template, canvasWidth: Number(e.target.value)})} /></div>
+                    <div className="form-group"><label>Canvas H</label><input type="number" className="input" value={template.canvasHeight} onChange={e => setTemplate({...template, canvasHeight: Number(e.target.value)})} /></div>
+                  </div>
+                  
+                  {template.backgroundUrl && (
+                    <TemplatePreview 
+                      backgroundUrl={template.backgroundUrl} 
+                      canvasWidth={template.canvasWidth} 
+                      canvasHeight={template.canvasHeight} 
+                      elements={elements} 
+                    />
+                  )}
+                </div>
+
+                <button type="submit" disabled={loading} className="btn btn-image btn-block btn-lg">
+                  <Save size={18} /> {loading ? "Uploading..." : "Upload Image Template"}
+                </button>
+              </div>
+
+              <div className="col-right card elements-panel">
+                <div className="elements-header">
+                  <h3 className="card-title" style={{margin:0}}>Elements</h3>
+                  <button type="button" onClick={addElement} className="btn btn-add-element">
+                    <Plus size={14} /> Add Element
+                  </button>
+                </div>
+                <div className="form-group" style={{marginTop: "12px"}}>
+                  <label>Apply Design Layout Preset:</label>
+                  <select className="input" onChange={(e) => {
+                    const preset = IMAGE_LAYOUT_PRESETS.find(p => p.name === e.target.value);
+                    if (preset) setElements(JSON.parse(JSON.stringify(preset.elements)));
+                  }}>
+                    <option value="">-- Select a Preset Style --</option>
+                    {IMAGE_LAYOUT_PRESETS.map((p, i) => (
+                      <option key={i} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {elements.map((el, i) => (
+                  <div key={i} className="element-card">
+                    <div className="element-header">
+                      <span className="element-label">ELEMENT {i+1} — {el.type.toUpperCase()}</span>
+                      <button type="button" onClick={() => removeElement(i)} className="btn-remove"><Trash2 size={14}/></button>
+                    </div>
+                    <div className="two-inputs">
+                      <input placeholder="ID" className="input input-sm" value={el.id} onChange={e => handleElementChange(i, "id", e.target.value)} />
+                      <select className="input input-sm" value={el.type} onChange={e => handleElementChange(i, "type", e.target.value)}>
+                        <option value="text">Text</option><option value="image">Image</option>
+                      </select>
+                    </div>
+                    <div className="four-inputs">
+                      {["x","y","width","height"].map(k => <input key={k} type="number" placeholder={k.toUpperCase()} className="input input-sm" value={el[k]} onChange={e => handleElementChange(i, k, e.target.value)} />)}
+                    </div>
+                    <div className="two-inputs" style={{alignItems:"center"}}>
+                      <input placeholder="Data Key (user.name)" className="input input-sm" value={el.dataKey} onChange={e => handleElementChange(i, "dataKey", e.target.value)} />
+                      <label className="checkbox-label"><input type="checkbox" checked={el.editable} onChange={e => handleElementChange(i, "editable", e.target.checked)} /> Editable</label>
+                    </div>
+                    {el.type === "text" && (
+                      <div className="text-controls">
+                        <input placeholder="Default Text" className="input input-sm" style={{flex:1}} value={el.text} onChange={e => handleElementChange(i, "text", e.target.value)} />
+                        <input type="color" className="color-input" value={el.color} onChange={e => handleElementChange(i, "color", e.target.value)} />
+                        <input type="number" placeholder="Sz" className="input input-sm" style={{width:"60px"}} value={el.fontSize} onChange={e => handleElementChange(i, "fontSize", e.target.value)} />
+                        <select className="input input-sm" style={{width:"85px"}} value={el.alignment} onChange={e => handleElementChange(i, "alignment", e.target.value)}>
+                          <option value="left">Left</option><option value="center">Center</option><option value="right">Right</option>
+                        </select>
+                      </div>
+                    )}
+                    {el.type === "image" && (
+                      <select className="input input-sm" value={el.mask} onChange={e => handleElementChange(i, "mask", e.target.value)}>
+                        <option value="">No Mask</option><option value="circle">Circle</option><option value="rounded_rectangle">Rounded Rect</option>
+                      </select>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </form>
+          </div>
+        )}
+
+        {view === "video" && (
+          <div>
+            <div className="page-header">
+              <div className="page-header-icon video-icon-sm">🎬</div>
+              <div>
+                <h1 className="page-title">Video Template</h1>
+                <p className="page-sub">Upload your MP4 video template with elements</p>
+              </div>
+            </div>
+            <form onSubmit={handleVideoSubmit} className="two-col-form">
+
+              {/* Left: Video Details */}
+              <div className="col-left">
+                <div className="card">
+                  <h3 className="card-title">Video Details</h3>
+                  <div className="form-group">
+                    <label>Video Title *</label>
+                    <input required className="input" value={videoTemplate.title} onChange={e => setVideoTemplate({...videoTemplate, title: e.target.value})} placeholder="e.g. Independence Day Video 2024" />
+                  </div>
+                  <div className="two-inputs">
+                    <div className="form-group">
+                      <label>Category</label>
+                      <select className="input" value={videoTemplate.categoryId} onChange={e => setVideoTemplate({...videoTemplate, categoryId: e.target.value})}>
+                        {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Sort Order</label>
+                      <input type="number" className="input" value={videoTemplate.sortOrder} onChange={e => setVideoTemplate({...videoTemplate, sortOrder: Number(e.target.value)})} />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Tags (Enter to add)</label>
+                    <div className="tags-row">
+                      {videoTemplate.tags.map(t => (
+                        <span key={t} className="tag video-tag">
+                          {t} <button type="button" onClick={() => setVideoTemplate({...videoTemplate, tags: videoTemplate.tags.filter(x => x !== t)})}>✕</button>
+                        </span>
+                      ))}
+                    </div>
+                    <input className="input" placeholder="Type and press Enter..." value={videoTagInput} onChange={e => setVideoTagInput(e.target.value)} onKeyDown={handleVideoAddTag} />
+                  </div>
+                </div>
+
+                <div className="card">
+                  <h3 className="card-title">Video & Thumbnail</h3>
+                  <div className="form-group">
+                    <label>MP4 Video *</label>
+                    <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
+                      <input type="file" accept="video/mp4" onChange={(e) => handleFileUpload(e, setVideoTemplate, videoTemplate, "videoUrl")} className="input input-video" style={{flex: 1}} />
+                    </div>
+                  </div>
+                  {videoTemplate.videoUrl && (
+                    <div className="video-preview-wrap">
+                      <video src={videoTemplate.videoUrl} controls className="video-preview" />
+                      <div className="video-success">✅ Video uploaded and loaded successfully</div>
+                    </div>
+                  )}
+                  <div className="form-group" style={{marginTop:"16px"}}>
+                    <label>Thumbnail <span className="optional">(optional — card preview ke liye)</span></label>
+                    <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setVideoTemplate, videoTemplate, "thumbnailUrl")} className="input" style={{flex: 1}} />
+                    </div>
+                    {videoTemplate.thumbnailUrl && <img src={videoTemplate.thumbnailUrl} className="media-preview" alt="thumb" onError={e => e.target.style.display="none"} />}
+                  </div>
+                </div>
+
+                <button type="submit" disabled={loading} className="btn btn-video btn-block btn-lg">
+                  <Save size={18} /> {loading ? "Uploading..." : "Upload Video Template to Firebase"}
+                </button>
+              </div>
+
+              {/* Right: Video Elements Panel */}
+              <div className="col-right card elements-panel">
+                <div className="elements-header">
+                  <h3 className="card-title" style={{margin:0}}>Elements</h3>
+                  <button type="button" onClick={addVideoElement} className="btn btn-add-element" style={{background:"#fce4ec", color:"#e91e63"}}>
+                    <Plus size={14} /> Add Element
+                  </button>
+                </div>
+                <div className="form-group" style={{marginTop: "12px"}}>
+                  <label>Apply Design Layout Preset:</label>
+                  <select className="input" onChange={(e) => {
+                    const preset = VIDEO_LAYOUT_PRESETS.find(p => p.name === e.target.value);
+                    if (preset) setVideoElements(JSON.parse(JSON.stringify(preset.elements)));
+                  }}>
+                    <option value="">-- Select a Preset Style --</option>
+                    {VIDEO_LAYOUT_PRESETS.map((p, i) => (
+                      <option key={i} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {videoElements.map((el, i) => (
+                  <div key={i} className="element-card">
+                    <div className="element-header">
+                      <span className="element-label">ELEMENT {i+1} — {el.type.toUpperCase()}</span>
+                      <button type="button" onClick={() => removeVideoElement(i)} className="btn-remove"><Trash2 size={14}/></button>
+                    </div>
+                    <div className="two-inputs">
+                      <input placeholder="ID" className="input input-sm" value={el.id} onChange={e => handleVideoElementChange(i, "id", e.target.value)} />
+                      <select className="input input-sm" value={el.type} onChange={e => handleVideoElementChange(i, "type", e.target.value)}>
+                        <option value="text">Text</option><option value="image">Image</option>
+                      </select>
+                    </div>
+                    <div className="four-inputs">
+                      {["x","y","width","height"].map(k => <input key={k} type="number" placeholder={k.toUpperCase()} className="input input-sm" value={el[k]} onChange={e => handleVideoElementChange(i, k, e.target.value)} />)}
+                    </div>
+                    <div className="two-inputs" style={{alignItems:"center"}}>
+                      <input placeholder="Data Key (user.name)" className="input input-sm" value={el.dataKey} onChange={e => handleVideoElementChange(i, "dataKey", e.target.value)} />
+                      <label className="checkbox-label"><input type="checkbox" checked={el.editable} onChange={e => handleVideoElementChange(i, "editable", e.target.checked)} /> Editable</label>
+                    </div>
+                    {el.type === "text" && (
+                      <div className="text-controls">
+                        <input placeholder="Default Text" className="input input-sm" style={{flex:1}} value={el.text} onChange={e => handleVideoElementChange(i, "text", e.target.value)} />
+                        <input type="color" className="color-input" value={el.color} onChange={e => handleVideoElementChange(i, "color", e.target.value)} />
+                        <input type="number" placeholder="Sz" className="input input-sm" style={{width:"60px"}} value={el.fontSize} onChange={e => handleVideoElementChange(i, "fontSize", e.target.value)} />
+                        <select className="input input-sm" style={{width:"85px"}} value={el.alignment} onChange={e => handleVideoElementChange(i, "alignment", e.target.value)}>
+                          <option value="left">Left</option><option value="center">Center</option><option value="right">Right</option>
+                        </select>
+                      </div>
+                    )}
+                    {el.type === "image" && (
+                      <select className="input input-sm" value={el.mask} onChange={e => handleVideoElementChange(i, "mask", e.target.value)}>
+                        <option value="">No Mask</option><option value="circle">Circle</option><option value="rounded_rectangle">Rounded Rect</option>
+                      </select>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </form>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+export default App;
