@@ -315,7 +315,16 @@ function App() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); setLoading(true);
+    e.preventDefault(); 
+    if (!template.backgroundUrl) {
+      alert("Error: Background Image is required!");
+      return;
+    }
+    if (!template.thumbnailUrl) {
+      alert("Error: Thumbnail Image is required!");
+      return;
+    }
+    setLoading(true);
     try {
       await addDoc(collection(db, "templates"), { ...template, elements, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
       alert("Image Template uploaded!");
@@ -499,7 +508,7 @@ function App() {
                     {template.backgroundUrl && <img src={template.backgroundUrl} className="media-preview" alt="bg" onError={e => e.target.style.display="none"} />}
                   </div>
                   <div className="form-group">
-                    <label>Thumbnail <span className="optional">(optional)</span></label>
+                    <label>Thumbnail *</label>
                     <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
                       <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTemplate, template, "thumbnailUrl")} className="input" style={{flex: 1}} />
                     </div>
