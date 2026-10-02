@@ -187,8 +187,6 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState("");
-  const [additionalTemplates, setAdditionalTemplates] = useState([]);
-  const [isUploadingAll, setIsUploadingAll] = useState(false);
   const [view, setView] = useState(() => {
     const hash = window.location.hash.replace("#", "");
     return ["image", "video", "bulk"].includes(hash) ? hash : "select";
@@ -217,6 +215,38 @@ function App() {
     setTimeout(() => setToast({ message: "", type: "" }), 5000);
   };
 
+  
+  const DEFAULT_TEMPLATE = {
+    title: "", categoryId: "festival", tags: [], language: "en",
+    thumbnailUrl: "", previewUrl: "", backgroundUrl: "",
+    canvasWidth: 1080, canvasHeight: 1080, isActive: true, isVideo: false, sortOrder: 0,
+  };
+  const DEFAULT_ELEMENTS = [{
+    id: "user_name", type: "text", x: 100, y: 800, width: 880, height: 100,
+    editable: true, dataKey: "user.name", text: "YOUR NAME",
+    color: "#FFFFFF", fontSize: 60, fontFamily: "Inter", alignment: "center", fontWeight: "bold",
+  }];
+
+  const [imageBlocks, setImageBlocks] = useState([{
+      _id: Date.now(),
+      template: {...DEFAULT_TEMPLATE},
+      elements: JSON.parse(JSON.stringify(DEFAULT_ELEMENTS)),
+      tagInput: "",
+      status: "idle",
+      error: ""
+  }]);
+  
+  const updateBlock = (index, field, value) => {
+      const arr = [...imageBlocks];
+      arr[index][field] = value;
+      setImageBlocks(arr);
+  };
+  const updateBlockTemplate = (index, newTpl) => updateBlock(index, 'template', newTpl);
+  const updateBlockElements = (index, newEls) => updateBlock(index, 'elements', newEls);
+
+  const [isUploadingAll, setIsUploadingAll] = useState(false);
+
+  // We keep these for video templates
   const [template, setTemplate] = useState({
     title: "", categoryId: "festival", tags: [], language: "en",
     thumbnailUrl: "", previewUrl: "", backgroundUrl: "",
@@ -242,6 +272,104 @@ function App() {
   }]);
 
   const [tagInput, setTagInput] = useState("");
+  
+  const handleBlockAddTag = (e, index) => {
+    if (e.key === "Enter" && imageBlocks[index].tagInput.trim()) {
+      e.preventDefault();
+      const t = imageBlocks[index].tagInput.trim().toLowerCase();
+      const tpl = imageBlocks[index].template;
+      if (!tpl.tags.includes(t)) {
+        updateBlockTemplate(index, { ...tpl, tags: [...tpl.tags, t] });
+      }
+      updateBlock(index, 'tagInput', "");
+    }
+  };
+
+  const handleBlockFileUpload = async (e, index, urlField) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    updateBlock(index, 'status', 'uploading');
+    try {
+      const fileRef = ref(storage, `templates/${Date.now()}_${file.name}`);
+      const uploadTask = uploadBytesResumable(fileRef, file);
+      const uploadPromise = new Promise((resolve, reject) => {
+        const unsub = uploadTask.on('state_changed', null, (err) => { unsub(); reject(err); }, async () => {
+          unsub();
+          try { resolve(await getDownloadURL(uploadTask.snapshot.ref)); } catch(e2){ reject(e2); }
+        });
+      });
+      const downloadURL = await Promise.race([uploadPromise, timeout(30000)]);
+      const tpl = imageBlocks[index].template;
+      if (urlField === "thumbnailUrl") {
+          updateBlockTemplate(index, { ...tpl, [urlField]: downloadURL, previewUrl: downloadURL });
+      } else {
+          updateBlockTemplate(index, { ...tpl, [urlField]: downloadURL });
+      }
+      updateBlock(index, 'status', 'idle');
+    } catch (err) {
+      updateBlock(index, 'status', 'failed');
+      updateBlock(index, 'error', err.message);
+    }
+  };
+
+  const addBlockElement = (index) => {
+    const arr = [...imageBlocks[index].elements];
+    arr.push({
+      id: `element_${arr.length + 1}`, type: "text", x: 0, y: 0,
+      width: 200, height: 80, editable: true, dataKey: "",
+      text: "New Text", color: "#FFFFFF", fontSize: 50,
+      fontFamily: "Inter", alignment: "left", fontWeight: "normal", mask: "", imageUrl: "",
+    });
+    updateBlockElements(index, arr);
+  };
+  const removeBlockElement = (index, elIndex) => {
+    const arr = [...imageBlocks[index].elements];
+    arr.splice(elIndex, 1);
+    updateBlockElements(index, arr);
+  };
+  const handleBlockElementChange = (index, elIndex, f, value) => {
+    const arr = [...imageBlocks[index].elements];
+    arr[elIndex][f] = ["x","y","width","height","fontSize"].includes(f) ? Number(value) : value;
+    updateBlockElements(index, arr);
+  };
+
+  const handleMultiSubmit = async (e) => {
+    e.preventDefault();
+    for(let i=0; i<imageBlocks.length; i++) {
+       const b = imageBlocks[i];
+       if (!b.template.backgroundUrl || !b.template.thumbnailUrl) {
+          showToast(`Background and Thumbnail Images required for Block ${i+1}!`, "error");
+          return;
+       }
+    }
+    setIsUploadingAll(true);
+    for(let i=0; i<imageBlocks.length; i++) {
+        if(imageBlocks[i].status === "done") continue;
+        updateBlock(i, "status", "uploading");
+        try {
+           const p = addDoc(collection(db, "templates"), {
+              ...imageBlocks[i].template, elements: imageBlocks[i].elements,
+              createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+           });
+           await Promise.race([p, timeout(30000)]);
+           updateBlock(i, "status", "done");
+        } catch(err) {
+           updateBlock(i, "status", "failed");
+           updateBlock(i, "error", err.message);
+           setIsUploadingAll(false);
+           return;
+        }
+    }
+    showToast("All Image Templates uploaded successfully!", "success");
+    setImageBlocks([{
+      _id: Date.now(),
+      template: {...DEFAULT_TEMPLATE},
+      elements: JSON.parse(JSON.stringify(DEFAULT_ELEMENTS)),
+      tagInput: "", status: "idle", error: ""
+    }]);
+    setIsUploadingAll(false);
+  };
+
   const [videoTagInput, setVideoTagInput] = useState("");
 
   useEffect(() => {
@@ -371,112 +499,25 @@ function App() {
     }
   };
 
-  
-  const handleMultiFileUpload = async (e, index, urlField) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    const arr = [...additionalTemplates];
-    arr[index].status = "uploading";
-    arr[index].error = "";
-    setAdditionalTemplates(arr);
-    
-    try {
-      const fileRef = ref(storage, `templates/${Date.now()}_${file.name}`);
-      const uploadTask = uploadBytesResumable(fileRef, file);
-      const uploadPromise = new Promise((resolve, reject) => {
-        const unsub = uploadTask.on('state_changed', null,
-          (err) => { unsub(); reject(err); },
-          async () => {
-            unsub();
-            try { resolve(await getDownloadURL(uploadTask.snapshot.ref)); } catch (e2) { reject(e2); }
-          }
-        );
-      });
-      const downloadURL = await Promise.race([uploadPromise, timeout(30000)]);
-      
-      const updated = [...additionalTemplates];
-      updated[index][urlField] = downloadURL;
-      updated[index].status = "idle";
-      setAdditionalTemplates(updated);
-    } catch (err) {
-      const failed = [...additionalTemplates];
-      failed[index].status = "failed";
-      failed[index].error = err.message;
-      setAdditionalTemplates(failed);
-    }
-  };
-
-  const getElementsForPreset = (presetName) => {
-    const p = IMAGE_LAYOUT_PRESETS.find(x => x.name === presetName);
-    return p ? JSON.parse(JSON.stringify(p.elements)) : [];
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault(); 
     if (!template.backgroundUrl || !template.thumbnailUrl) {
-      showToast("Error: Background and Thumbnail Images are required for Template 1!", "error");
+      showToast("Error: Background and Thumbnail Images are required! Wait for them to upload.", "error");
       return;
     }
-    
-    // Check if any additional template is missing images
-    for (let i = 0; i < additionalTemplates.length; i++) {
-       if (!additionalTemplates[i].backgroundUrl || !additionalTemplates[i].thumbnailUrl) {
-         showToast(`Error: Images missing for Template ${i + 2}`, "error");
-         return;
-       }
-    }
-    
-    setIsUploadingAll(true);
     setLoading(true);
-    
     try {
-      // 1. Save original template
       const savePromise = addDoc(collection(db, "templates"), { ...template, elements, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
       await Promise.race([savePromise, timeout(30000)]);
-      
-      // 2. Save additional templates
-      for (let i = 0; i < additionalTemplates.length; i++) {
-          if (additionalTemplates[i].status === "done") continue;
-          
-          const arr = [...additionalTemplates];
-          arr[i].status = "uploading";
-          arr[i].error = "";
-          setAdditionalTemplates([...arr]);
-          
-          try {
-            const tpl = additionalTemplates[i];
-            const p = addDoc(collection(db, "templates"), { 
-              title: tpl.title, categoryId: tpl.categoryId, tags: tpl.tags, language: "en",
-              thumbnailUrl: tpl.thumbnailUrl, previewUrl: tpl.thumbnailUrl, backgroundUrl: tpl.backgroundUrl,
-              canvasWidth: 1080, canvasHeight: 1080, isActive: true, isVideo: false, sortOrder: 0,
-              elements: getElementsForPreset(tpl.presetName), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() 
-            });
-            await Promise.race([p, timeout(30000)]);
-            const arrDone = [...additionalTemplates];
-            arrDone[i].status = "done";
-            setAdditionalTemplates([...arrDone]);
-          } catch (err) {
-            const arrFail = [...additionalTemplates];
-            arrFail[i].status = "failed";
-            arrFail[i].error = err.message;
-            setAdditionalTemplates([...arrFail]);
-            throw err; // Stop sequence on error
-          }
-      }
-      
-      showToast("All Image Templates uploaded successfully!", "success");
+      showToast("Image Template uploaded!", "success");
       setTemplate({ ...template, title: "", backgroundUrl: "", thumbnailUrl: "", previewUrl: "", tags: [] });
-      setAdditionalTemplates([]);
     } catch (err) { 
       console.error("Save Error:", err);
-      showToast("Upload Error. Please retry.", "error"); 
+      showToast("Error: " + err.message, "error"); 
     } finally {
-      setIsUploadingAll(false);
       setLoading(false);
     }
   };
-
 
   const handleVideoSubmit = async (e) => {
     e.preventDefault();
@@ -626,219 +667,173 @@ function App() {
 
         {view === "bulk" && <BulkUpload onBack={() => setView("select")} showToast={showToast} />}
 
+        
         {view === "image" && (
           <div>
-            <div className="page-header">
-              <div className="page-header-icon image-icon-sm">🖼️</div>
-              <div>
-                <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
-    <h1 className="page-title" style={{margin:0}}>Image Template</h1>
-    <button type="button" className="btn btn-outline btn-sm" onClick={() => {
-      setAdditionalTemplates([...additionalTemplates, {
-        _id: Date.now(), title: "", categoryId: template.categoryId, tags: [...template.tags],
-        thumbnailUrl: "", backgroundUrl: "", presetName: "",
-        status: "idle", error: ""
-      }]);
-    }}>＋ Add another template</button>
-  </div>
-                <p className="page-sub">Fill in the details and upload your poster template</p>
+            <div className="page-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
+                <div className="page-header-icon image-icon-sm">🖼️</div>
+                <div>
+                  <h1 className="page-title">Image Template</h1>
+                  <p className="page-sub">Fill in the details and upload your poster template</p>
+                </div>
               </div>
+              <button type="button" className="btn btn-outline" onClick={() => {
+                const first = imageBlocks[0];
+                setImageBlocks([...imageBlocks, {
+                  _id: Date.now(),
+                  template: { ...DEFAULT_TEMPLATE, categoryId: first.template.categoryId, tags: [...first.template.tags] },
+                  elements: JSON.parse(JSON.stringify(first.elements)),
+                  tagInput: "", status: "idle", error: ""
+                }]);
+              }}>＋ Add another template</button>
             </div>
-            <form onSubmit={handleSubmit} className="two-col-form">
-              <div className="col-left">
-                <div className="card">
-                  <h3 className="card-title">Template Details</h3>
-                  <div className="form-group">
-                    <label>Title *</label>
-                    <input required className="input" value={template.title} onChange={e => setTemplate({...template, title: e.target.value})} placeholder="e.g. Diwali Poster 2024" />
+            
+            <form onSubmit={handleMultiSubmit}>
+              {imageBlocks.map((block, index) => (
+              <div key={block._id} style={{border: block.status==='failed'?'2px solid red':block.status==='done'?'2px solid green':'2px solid transparent', padding: index > 0 ? '16px' : '0', marginBottom:'32px', backgroundColor: index > 0 ? '#fafafa' : 'transparent', borderRadius: '8px'}}>
+                {index > 0 && (
+                  <div style={{display:'flex', justifyContent:'space-between', marginBottom:'16px'}}>
+                    <h2>Template {index + 1} {block.status === 'uploading' && '(Uploading...)'} {block.status === 'done' && '✓'}</h2>
+                    <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => {
+                      const arr = [...imageBlocks];
+                      arr.splice(index, 1);
+                      setImageBlocks(arr);
+                    }}>✕ Remove</button>
                   </div>
-                  <div className="two-inputs">
-                    <div className="form-group">
-                      <label>Category</label>
-                      <select className="input" value={template.categoryId} onChange={e => setTemplate({...template, categoryId: e.target.value})}>
-                        {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Sort Order</label>
-                      <input type="number" className="input" value={template.sortOrder} onChange={e => setTemplate({...template, sortOrder: Number(e.target.value)})} />
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label>Tags (Enter to add)</label>
-                    <div className="tags-row">
-                      {template.tags.map(t => (
-                        <span key={t} className="tag image-tag">
-                          {t} <button type="button" onClick={() => setTemplate({...template, tags: template.tags.filter(x => x !== t)})}>✕</button>
-                        </span>
-                      ))}
-                    </div>
-                    <input className="input" placeholder="Type and press Enter..." value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleAddTag} />
-                  </div>
-                </div>
-
-                <div className="card">
-                  <h3 className="card-title">Media URLs</h3>
-                  <div className="form-group">
-                    <label>Background Image *</label>
-                    <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
-                      <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTemplate, template, "backgroundUrl")} className="input" style={{flex: 1}} />
-                    </div>
-                    {template.backgroundUrl && <img src={template.backgroundUrl} className="media-preview" alt="bg" onError={e => e.target.style.display="none"} />}
-                  </div>
-                  <div className="form-group">
-                    <label>Thumbnail *</label>
-                    <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
-                      <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTemplate, template, "thumbnailUrl")} className="input" style={{flex: 1}} />
-                    </div>
-                    {template.thumbnailUrl && <img src={template.thumbnailUrl} className="media-preview" alt="thumb" onError={e => e.target.style.display="none"} />}
-                  </div>
-                  <div className="two-inputs">
-                    <div className="form-group"><label>Canvas W</label><input type="number" className="input" value={template.canvasWidth} onChange={e => setTemplate({...template, canvasWidth: Number(e.target.value)})} /></div>
-                    <div className="form-group"><label>Canvas H</label><input type="number" className="input" value={template.canvasHeight} onChange={e => setTemplate({...template, canvasHeight: Number(e.target.value)})} /></div>
-                  </div>
-                  
-                  <TemplatePreview 
-                    backgroundUrl={template.backgroundUrl} 
-                    canvasWidth={template.canvasWidth} 
-                    canvasHeight={template.canvasHeight} 
-                    elements={elements} 
-                  />
-                </div>
-
+                )}
+                {block.error && <div style={{color:'red', marginBottom:'16px'}}>{block.error}</div>}
                 
-                {additionalTemplates.map((tpl, i) => (
-                  <div key={tpl._id} className="card" style={{border: tpl.status === 'failed' ? '2px solid red' : tpl.status === 'done' ? '2px solid green' : 'none'}}>
-                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom: '1px solid #e0e0e0', paddingBottom:'8px', marginBottom:'16px'}}>
-                      <h3 className="card-title" style={{margin:0}}>Template {i + 2}</h3>
-                      <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => {
-                        const arr = [...additionalTemplates];
-                        arr.splice(i, 1);
-                        setAdditionalTemplates(arr);
-                      }}>✕ Remove</button>
-                    </div>
-                    {tpl.status === 'failed' && <div style={{color:'red', marginBottom:'8px'}}>{tpl.error}</div>}
-                    
-                    <div className="form-group">
-                      <label>Title *</label>
-                      <input required className="input" value={tpl.title} onChange={e => {
-                        const arr = [...additionalTemplates];
-                        arr[i].title = e.target.value;
-                        setAdditionalTemplates(arr);
-                      }} />
-                    </div>
-                    <div className="two-inputs">
+                <div className="two-col-form">
+                  <div className="col-left">
+                    <div className="card">
+                      <h3 className="card-title">Template Details</h3>
                       <div className="form-group">
-                        <label>Category</label>
-                        <select className="input" value={tpl.categoryId} onChange={e => {
-                          const arr = [...additionalTemplates];
-                          arr[i].categoryId = e.target.value;
-                          setAdditionalTemplates(arr);
-                        }}>
-                          {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                        </select>
+                        <label>Title *</label>
+                        <input required className="input" value={block.template.title} onChange={e => updateBlockTemplate(index, {...block.template, title: e.target.value})} placeholder="e.g. Diwali Poster 2024" />
+                      </div>
+                      <div className="two-inputs">
+                        <div className="form-group">
+                          <label>Category</label>
+                          <select className="input" value={block.template.categoryId} onChange={e => updateBlockTemplate(index, {...block.template, categoryId: e.target.value})}>
+                            {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Sort Order</label>
+                          <input type="number" className="input" value={block.template.sortOrder} onChange={e => updateBlockTemplate(index, {...block.template, sortOrder: Number(e.target.value)})} />
+                        </div>
                       </div>
                       <div className="form-group">
-                        <label>Design Preset</label>
-                        <select className="input" value={tpl.presetName} onChange={e => {
-                          const arr = [...additionalTemplates];
-                          arr[i].presetName = e.target.value;
-                          setAdditionalTemplates(arr);
-                        }}>
-                          <option value="">-- Select a Preset Style --</option>
-                          {IMAGE_LAYOUT_PRESETS.map((p, idx) => <option key={idx} value={p.name}>{p.name}</option>)}
-                        </select>
+                        <label>Tags (Enter to add)</label>
+                        <div className="tags-row">
+                          {block.template.tags.map(t => (
+                            <span key={t} className="tag image-tag">
+                              {t} <button type="button" onClick={() => updateBlockTemplate(index, {...block.template, tags: block.template.tags.filter(x => x !== t)})}>✕</button>
+                            </span>
+                          ))}
+                        </div>
+                        <input className="input" placeholder="Type and press Enter..." value={block.tagInput} onChange={e => updateBlock(index, 'tagInput', e.target.value)} onKeyDown={e => handleBlockAddTag(e, index)} />
                       </div>
                     </div>
-                    <div className="form-group">
-                      <label>Tags (comma separated)</label>
-                      <input className="input" value={tpl.tags.join(', ')} onChange={e => {
-                        const arr = [...additionalTemplates];
-                        arr[i].tags = e.target.value.split(',').map(x => x.trim()).filter(Boolean);
-                        setAdditionalTemplates(arr);
-                      }} />
-                    </div>
-                    <div className="two-inputs">
+
+                    <div className="card">
+                      <h3 className="card-title">Media URLs</h3>
                       <div className="form-group">
-                        <label>Background Image *</label>
-                        <input type="file" accept="image/*" onChange={(e) => handleMultiFileUpload(e, i, "backgroundUrl")} className="input" />
-                        {tpl.status === 'uploading' && <span style={{color:'blue', fontSize:'12px'}}>Uploading...</span>}
-                        {tpl.backgroundUrl && <span style={{color:'green', fontSize:'12px'}}>✓ {tpl.backgroundUrl.split('?')[0].split('/').pop()}</span>}
+                        <label>Background Image * {block.status==='uploading'&&<span style={{color:'blue',fontSize:'12px'}}>(Uploading...)</span>}</label>
+                        <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
+                          <input type="file" accept="image/*" onChange={(e) => handleBlockFileUpload(e, index, "backgroundUrl")} className="input" style={{flex: 1}} />
+                        </div>
+                        {block.template.backgroundUrl && <img src={block.template.backgroundUrl} className="media-preview" alt="bg" onError={e => e.target.style.display="none"} />}
                       </div>
                       <div className="form-group">
-                        <label>Thumbnail *</label>
-                        <input type="file" accept="image/*" onChange={(e) => handleMultiFileUpload(e, i, "thumbnailUrl")} className="input" />
-                        {tpl.status === 'uploading' && <span style={{color:'blue', fontSize:'12px'}}>Uploading...</span>}
-                        {tpl.thumbnailUrl && <span style={{color:'green', fontSize:'12px'}}>✓ {tpl.thumbnailUrl.split('?')[0].split('/').pop()}</span>}
+                        <label>Thumbnail * {block.status==='uploading'&&<span style={{color:'blue',fontSize:'12px'}}>(Uploading...)</span>}</label>
+                        <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
+                          <input type="file" accept="image/*" onChange={(e) => handleBlockFileUpload(e, index, "thumbnailUrl")} className="input" style={{flex: 1}} />
+                        </div>
+                        {block.template.thumbnailUrl && <img src={block.template.thumbnailUrl} className="media-preview" alt="thumb" onError={e => e.target.style.display="none"} />}
                       </div>
+                      <div className="two-inputs">
+                        <div className="form-group"><label>Canvas W</label><input type="number" className="input" value={block.template.canvasWidth} onChange={e => updateBlockTemplate(index, {...block.template, canvasWidth: Number(e.target.value)})} /></div>
+                        <div className="form-group"><label>Canvas H</label><input type="number" className="input" value={block.template.canvasHeight} onChange={e => updateBlockTemplate(index, {...block.template, canvasHeight: Number(e.target.value)})} /></div>
+                      </div>
+                      
+                      <TemplatePreview 
+                        backgroundUrl={block.template.backgroundUrl} 
+                        canvasWidth={block.template.canvasWidth} 
+                        canvasHeight={block.template.canvasHeight} 
+                        elements={block.elements} 
+                      />
                     </div>
                   </div>
-                ))}
 
-                <button type="submit" disabled={isUploadingAll || loading || additionalTemplates.some(x => x.status === 'uploading')} className="btn btn-image btn-block btn-lg">
-                  <Save size={18} /> {isUploadingAll ? "Uploading All..." : additionalTemplates.length > 0 ? `Upload All (${additionalTemplates.length + 1})` : "Upload Image Template"}
-                </button>
-              </div>
-
-              <div className="col-right card elements-panel">
-                <div className="elements-header">
-                  <h3 className="card-title" style={{margin:0}}>Elements</h3>
-                  <button type="button" onClick={addElement} className="btn btn-add-element">
-                    <Plus size={14} /> Add Element
-                  </button>
-                </div>
-                <div className="form-group" style={{marginTop: "12px"}}>
-                  <label>Apply Design Layout Preset:</label>
-                  <select className="input" onChange={(e) => {
-                    const preset = IMAGE_LAYOUT_PRESETS.find(p => p.name === e.target.value);
-                    if (preset) setElements(JSON.parse(JSON.stringify(preset.elements)));
-                  }}>
-                    <option value="">-- Select a Preset Style --</option>
-                    {IMAGE_LAYOUT_PRESETS.map((p, i) => (
-                      <option key={i} value={p.name}>{p.name}</option>
+                  <div className="col-right card elements-panel">
+                    <div className="elements-header">
+                      <h3 className="card-title" style={{margin:0}}>Elements</h3>
+                      <button type="button" onClick={() => addBlockElement(index)} className="btn btn-add-element">
+                        <Plus size={14} /> Add Element
+                      </button>
+                    </div>
+                    <div className="form-group" style={{marginTop: "12px"}}>
+                      <label>Apply Design Layout Preset:</label>
+                      <select className="input" onChange={(e) => {
+                        const preset = IMAGE_LAYOUT_PRESETS.find(p => p.name === e.target.value);
+                        if (preset) updateBlockElements(index, JSON.parse(JSON.stringify(preset.elements)));
+                      }}>
+                        <option value="">-- Select a Preset Style --</option>
+                        {IMAGE_LAYOUT_PRESETS.map((p, i) => (
+                          <option key={i} value={p.name}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {block.elements.map((el, elIndex) => (
+                      <div key={elIndex} className="element-card">
+                        <div className="element-header">
+                          <span className="element-label">ELEMENT {elIndex+1} — {el.type.toUpperCase()}</span>
+                          <button type="button" onClick={() => removeBlockElement(index, elIndex)} className="btn-remove"><Trash2 size={14}/></button>
+                        </div>
+                        <div className="two-inputs">
+                          <input placeholder="ID" className="input input-sm" value={el.id} onChange={e => handleBlockElementChange(index, elIndex, "id", e.target.value)} />
+                          <select className="input input-sm" value={el.type} onChange={e => handleBlockElementChange(index, elIndex, "type", e.target.value)}>
+                            <option value="text">Text</option><option value="image">Image</option>
+                          </select>
+                        </div>
+                        <div className="four-inputs">
+                          {["x","y","width","height"].map(k => <input key={k} type="number" placeholder={k.toUpperCase()} className="input input-sm" value={el[k]} onChange={e => handleBlockElementChange(index, elIndex, k, e.target.value)} />)}
+                        </div>
+                        <div className="two-inputs" style={{alignItems:"center"}}>
+                          <input placeholder="Data Key (user.name)" className="input input-sm" value={el.dataKey} onChange={e => handleBlockElementChange(index, elIndex, "dataKey", e.target.value)} />
+                          <label className="checkbox-label"><input type="checkbox" checked={el.editable} onChange={e => handleBlockElementChange(index, elIndex, "editable", e.target.checked)} /> Editable</label>
+                        </div>
+                        {el.type === "text" && (
+                          <div className="text-controls">
+                            <input placeholder="Default Text" className="input input-sm" style={{flex:1}} value={el.text} onChange={e => handleBlockElementChange(index, elIndex, "text", e.target.value)} />
+                            <input type="color" className="color-input" value={el.color} onChange={e => handleBlockElementChange(index, elIndex, "color", e.target.value)} />
+                            <input type="number" placeholder="Sz" className="input input-sm" style={{width:"60px"}} value={el.fontSize} onChange={e => handleBlockElementChange(index, elIndex, "fontSize", e.target.value)} />
+                            <select className="input input-sm" style={{width:"85px"}} value={el.alignment} onChange={e => handleBlockElementChange(index, elIndex, "alignment", e.target.value)}>
+                              <option value="left">Left</option><option value="center">Center</option><option value="right">Right</option>
+                            </select>
+                          </div>
+                        )}
+                        {el.type === "image" && (
+                          <select className="input input-sm" value={el.mask} onChange={e => handleBlockElementChange(index, elIndex, "mask", e.target.value)}>
+                            <option value="">No Mask</option><option value="circle">Circle</option><option value="rounded_rectangle">Rounded Rect</option>
+                          </select>
+                        )}
+                      </div>
                     ))}
-                  </select>
-                </div>
-                {elements.map((el, i) => (
-                  <div key={i} className="element-card">
-                    <div className="element-header">
-                      <span className="element-label">ELEMENT {i+1} — {el.type.toUpperCase()}</span>
-                      <button type="button" onClick={() => removeElement(i)} className="btn-remove"><Trash2 size={14}/></button>
-                    </div>
-                    <div className="two-inputs">
-                      <input placeholder="ID" className="input input-sm" value={el.id} onChange={e => handleElementChange(i, "id", e.target.value)} />
-                      <select className="input input-sm" value={el.type} onChange={e => handleElementChange(i, "type", e.target.value)}>
-                        <option value="text">Text</option><option value="image">Image</option>
-                      </select>
-                    </div>
-                    <div className="four-inputs">
-                      {["x","y","width","height"].map(k => <input key={k} type="number" placeholder={k.toUpperCase()} className="input input-sm" value={el[k]} onChange={e => handleElementChange(i, k, e.target.value)} />)}
-                    </div>
-                    <div className="two-inputs" style={{alignItems:"center"}}>
-                      <input placeholder="Data Key (user.name)" className="input input-sm" value={el.dataKey} onChange={e => handleElementChange(i, "dataKey", e.target.value)} />
-                      <label className="checkbox-label"><input type="checkbox" checked={el.editable} onChange={e => handleElementChange(i, "editable", e.target.checked)} /> Editable</label>
-                    </div>
-                    {el.type === "text" && (
-                      <div className="text-controls">
-                        <input placeholder="Default Text" className="input input-sm" style={{flex:1}} value={el.text} onChange={e => handleElementChange(i, "text", e.target.value)} />
-                        <input type="color" className="color-input" value={el.color} onChange={e => handleElementChange(i, "color", e.target.value)} />
-                        <input type="number" placeholder="Sz" className="input input-sm" style={{width:"60px"}} value={el.fontSize} onChange={e => handleElementChange(i, "fontSize", e.target.value)} />
-                        <select className="input input-sm" style={{width:"85px"}} value={el.alignment} onChange={e => handleElementChange(i, "alignment", e.target.value)}>
-                          <option value="left">Left</option><option value="center">Center</option><option value="right">Right</option>
-                        </select>
-                      </div>
-                    )}
-                    {el.type === "image" && (
-                      <select className="input input-sm" value={el.mask} onChange={e => handleElementChange(i, "mask", e.target.value)}>
-                        <option value="">No Mask</option><option value="circle">Circle</option><option value="rounded_rectangle">Rounded Rect</option>
-                      </select>
-                    )}
                   </div>
-                ))}
+                </div>
               </div>
+              ))}
+
+              <button type="submit" disabled={isUploadingAll || imageBlocks.some(x => x.status === 'uploading')} className="btn btn-image btn-block btn-lg">
+                <Save size={18} /> {isUploadingAll ? "Uploading All..." : imageBlocks.length > 1 ? `Upload All (${imageBlocks.length})` : "Upload Image Template"}
+              </button>
             </form>
           </div>
         )}
+
 
         {view === "video" && (
           <div>
