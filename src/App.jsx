@@ -185,6 +185,12 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [view, setView] = useState("select");
+  const [toast, setToast] = useState({ message: "", type: "" });
+
+  const showToast = (message, type = "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast({ message: "", type: "" }), 5000);
+  };
 
   const [template, setTemplate] = useState({
     title: "", categoryId: "festival", tags: [], language: "en",
@@ -234,13 +240,22 @@ function App() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       await signInWithEmailAndPassword(getAuth(), email, password);
     } catch (err) {
       if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found") {
-        try { await createUserWithEmailAndPassword(getAuth(), email, password); }
-        catch (e2) { alert("Login failed: " + e2.message); }
-      } else { alert("Login failed: " + err.message); }
+        try { 
+          await createUserWithEmailAndPassword(getAuth(), email, password); 
+        }
+        catch (e2) { 
+          showToast("Login failed: " + e2.message); 
+        }
+      } else { 
+        showToast("Login failed: " + err.message); 
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -303,20 +318,25 @@ function App() {
       
       uploadTask.on('state_changed', 
         (snapshot) => {},
-        (error) => { alert("Upload error: " + error.message); setLoading(false); },
+        (error) => { showToast("Upload error: " + error.message, "error"); setLoading(false); },
         async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          if (urlField === "thumbnailUrl") {
-              setTemplateFunc({ ...templateState, [urlField]: downloadURL, previewUrl: downloadURL });
-          } else {
-              setTemplateFunc({ ...templateState, [urlField]: downloadURL });
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            if (urlField === "thumbnailUrl") {
+                setTemplateFunc({ ...templateState, [urlField]: downloadURL, previewUrl: downloadURL });
+            } else {
+                setTemplateFunc({ ...templateState, [urlField]: downloadURL });
+            }
+            showToast("File uploaded to Firebase successfully!", "success");
+          } catch (e2) {
+            showToast("Failed to get download URL: " + e2.message, "error");
+          } finally {
+            setLoading(false);
           }
-          setLoading(false);
-          alert("File uploaded to Firebase successfully!");
         }
       );
     } catch (err) {
-      alert("Error: " + err.message);
+      showToast("Error: " + err.message, "error");
       setLoading(false);
     }
   };
@@ -324,25 +344,29 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault(); 
     if (!template.backgroundUrl) {
-      alert("Error: Background Image is required!");
+      showToast("Error: Background Image is required!", "error");
       return;
     }
     if (!template.thumbnailUrl) {
-      alert("Error: Thumbnail Image is required!");
+      showToast("Error: Thumbnail Image is required!", "error");
       return;
     }
     setLoading(true);
     try {
       await addDoc(collection(db, "templates"), { ...template, elements, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-      alert("Image Template uploaded!");
+      showToast("Image Template uploaded!", "success");
       setTemplate({ ...template, title: "", backgroundUrl: "", thumbnailUrl: "", previewUrl: "", tags: [] });
-    } catch (err) { alert("Error: " + err.message); }
-    setLoading(false);
+    } catch (err) { 
+      console.error(err);
+      showToast("Error: " + err.message, "error"); 
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVideoSubmit = async (e) => {
     e.preventDefault();
-    if (!videoTemplate.videoUrl.trim()) { alert("MP4 Video URL required!"); return; }
+    if (!videoTemplate.videoUrl.trim()) { showToast("MP4 Video URL required!", "error"); return; }
     setLoading(true);
     try {
       await addDoc(collection(db, "templates"), {
@@ -350,10 +374,14 @@ function App() {
         elements: videoElements,
         createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
       });
-      alert("Video Template uploaded!");
+      showToast("Video Template uploaded!", "success");
       setVideoTemplate({ ...videoTemplate, title: "", videoUrl: "", thumbnailUrl: "", tags: [] });
-    } catch (err) { alert("Error: " + err.message); }
-    setLoading(false);
+    } catch (err) { 
+      console.error(err);
+      showToast("Error: " + err.message, "error"); 
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddAdmin = async () => {
@@ -365,10 +393,10 @@ function App() {
       if (!emails.includes(newAdminEmail.trim().toLowerCase())) {
         emails.push(newAdminEmail.trim().toLowerCase());
         await setDoc(ref, { emails }, { merge: true });
-        alert(`Admin access granted to ${newAdminEmail}!`);
+        showToast(`Admin access granted to ${newAdminEmail}!`, "success");
         setNewAdminEmail("");
-      } else alert("Already an admin!");
-    } catch (e) { alert("Error: " + e.message); }
+      } else showToast("Already an admin!", "error");
+    } catch (e) { showToast("Error: " + e.message, "error"); }
   };
 
   const CATEGORIES = [
@@ -377,10 +405,22 @@ function App() {
     { value: "motivational", label: "Motivational" }, { value: "political", label: "Political" },
   ];
 
+  const ToastComponent = toast.message ? (
+    <div style={{
+      position: 'fixed', top: '20px', right: '20px', zIndex: 9999,
+      background: toast.type === 'error' ? '#ef4444' : '#10b981',
+      color: 'white', padding: '12px 24px', borderRadius: '8px',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.1)', fontWeight: 'bold'
+    }}>
+      {toast.message}
+    </div>
+  ) : null;
+
   if (authLoading) return <div className="loading-screen"><div className="spinner"></div><p>Loading...</p></div>;
 
   if (!user) return (
     <div className="login-bg">
+      {ToastComponent}
       <form className="login-card" onSubmit={handleLogin}>
         <div className="login-logo">
           <span>प</span>
@@ -411,6 +451,7 @@ function App() {
 
   return (
     <div className="admin-app">
+      {ToastComponent}
       <header className="topbar">
         <div className="topbar-left">
           {view !== "select" && (
