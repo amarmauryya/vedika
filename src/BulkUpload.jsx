@@ -85,7 +85,7 @@ export default function BulkUpload({ onBack, showToast }) {
     
     try {
       // 1. Storage Upload
-      const fileRef = ref(storage, \`templates/\${Date.now()}_\${fileObj.name}\`);
+      const fileRef = ref(storage, `templates/${Date.now()}_${fileObj.name}`);
       const uploadTask = uploadBytesResumable(fileRef, fileObj);
       
       const uploadPromise = new Promise((resolve, reject) => {
@@ -130,7 +130,7 @@ export default function BulkUpload({ onBack, showToast }) {
 
       setUploadStatus(prev => ({ ...prev, [entry.file]: { status: 'done', error: '' } }));
     } catch (err) {
-      console.error(\`Failed to upload \${entry.file}:\`, err);
+      console.error(`Failed to upload ${entry.file}:`, err);
       setUploadStatus(prev => ({ ...prev, [entry.file]: { status: 'failed', error: err.message } }));
     }
   };
