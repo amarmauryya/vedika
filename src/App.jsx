@@ -5,6 +5,9 @@ import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
 import { Plus, Trash2, Save, LogOut, UserPlus, ArrowLeft } from "lucide-react";
 import "./App.css";
+import BulkUpload from "./BulkUpload";
+
+const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error("Save timed out — please retry")), ms));
 
 const ALLOWED_ADMINS = ["ayushkft@gmail.com"];
 
@@ -312,52 +315,54 @@ function App() {
     if (!file) return;
     
     setLoading(true);
+    showToast("Uploading file...", "info");
     try {
       const fileRef = ref(storage, `templates/${Date.now()}_${file.name}`);
       const uploadTask = uploadBytesResumable(fileRef, file);
       
-      uploadTask.on('state_changed', 
-        (snapshot) => {},
-        (error) => { showToast("Upload error: " + error.message, "error"); setLoading(false); },
-        async () => {
-          try {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            if (urlField === "thumbnailUrl") {
-                setTemplateFunc({ ...templateState, [urlField]: downloadURL, previewUrl: downloadURL });
-            } else {
-                setTemplateFunc({ ...templateState, [urlField]: downloadURL });
-            }
-            showToast("File uploaded to Firebase successfully!", "success");
-          } catch (e2) {
-            showToast("Failed to get download URL: " + e2.message, "error");
-          } finally {
-            setLoading(false);
+      const uploadPromise = new Promise((resolve, reject) => {
+        const unsub = uploadTask.on('state_changed', 
+          null,
+          (error) => { unsub(); reject(error); },
+          async () => {
+            unsub();
+            try {
+              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+              resolve(downloadURL);
+            } catch (e2) { reject(e2); }
           }
-        }
-      );
+        );
+      });
+      
+      const downloadURL = await Promise.race([uploadPromise, timeout(30000)]);
+      if (urlField === "thumbnailUrl") {
+          setTemplateFunc({ ...templateState, [urlField]: downloadURL, previewUrl: downloadURL });
+      } else {
+          setTemplateFunc({ ...templateState, [urlField]: downloadURL });
+      }
+      showToast("File uploaded successfully!", "success");
     } catch (err) {
-      showToast("Error: " + err.message, "error");
+      console.error(err);
+      showToast("Upload Error: " + err.message, "error");
+    } finally {
       setLoading(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); 
-    if (!template.backgroundUrl) {
-      showToast("Error: Background Image is required!", "error");
-      return;
-    }
-    if (!template.thumbnailUrl) {
-      showToast("Error: Thumbnail Image is required!", "error");
+    if (!template.backgroundUrl || !template.thumbnailUrl) {
+      showToast("Error: Background and Thumbnail Images are required! Wait for them to upload.", "error");
       return;
     }
     setLoading(true);
     try {
-      await addDoc(collection(db, "templates"), { ...template, elements, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      const savePromise = addDoc(collection(db, "templates"), { ...template, elements, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      await Promise.race([savePromise, timeout(30000)]);
       showToast("Image Template uploaded!", "success");
       setTemplate({ ...template, title: "", backgroundUrl: "", thumbnailUrl: "", previewUrl: "", tags: [] });
     } catch (err) { 
-      console.error(err);
+      console.error("Save Error:", err);
       showToast("Error: " + err.message, "error"); 
     } finally {
       setLoading(false);
@@ -494,6 +499,12 @@ function App() {
                 <p>Upload poster templates with image background, text and logo elements</p>
                 <div className="type-card-btn image-btn">Create Image Template →</div>
               </div>
+              <div className="type-card" style={{background:"#e0e7ff", color:"#3730a3"}} onClick={() => setView("bulk")}>
+                <div className="type-card-icon" style={{background:"#c7d2fe"}}>📦</div>
+                <h2>Bulk Upload</h2>
+                <p>Upload multiple image templates at once using a JSON configuration</p>
+                <div className="type-card-btn" style={{background:"#4f46e5"}}>Bulk Upload →</div>
+              </div>
               <div className="type-card video-card" onClick={() => setView("video")}>
                 <div className="type-card-icon video-icon">🎬</div>
                 <h2>Video Template</h2>
@@ -503,6 +514,8 @@ function App() {
             </div>
           </div>
         )}
+
+        {view === "bulk" && <BulkUpload onBack={() => setView("select")} showToast={showToast} />}
 
         {view === "image" && (
           <div>
