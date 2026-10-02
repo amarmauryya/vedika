@@ -189,8 +189,6 @@ function App() {
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [additionalTemplates, setAdditionalTemplates] = useState([]);
   const [isUploadingAll, setIsUploadingAll] = useState(false);
-  const [templateStatus, setTemplateStatus] = useState({status: "idle", error: ""});
-  const [templatePreset, setTemplatePreset] = useState("");
   const [view, setView] = useState(() => {
     const hash = window.location.hash.replace("#", "");
     return ["image", "video", "bulk"].includes(hash) ? hash : "select";
@@ -378,17 +376,11 @@ function App() {
     const file = e.target.files[0];
     if (!file) return;
     
-    const updateStatus = (st, err="") => {
-      if (index === -1) setTemplateStatus({status: st, error: err});
-      else {
-        const arr = [...additionalTemplates];
-        arr[index].status = st;
-        arr[index].error = err;
-        setAdditionalTemplates(arr);
-      }
-    };
+    const arr = [...additionalTemplates];
+    arr[index].status = "uploading";
+    arr[index].error = "";
+    setAdditionalTemplates(arr);
     
-    updateStatus("uploading");
     try {
       const fileRef = ref(storage, `templates/${Date.now()}_${file.name}`);
       const uploadTask = uploadBytesResumable(fileRef, file);
@@ -403,69 +395,86 @@ function App() {
       });
       const downloadURL = await Promise.race([uploadPromise, timeout(30000)]);
       
-      if (index === -1) {
-        setTemplate(prev => ({...prev, [urlField]: downloadURL, ...(urlField === 'thumbnailUrl' ? {previewUrl: downloadURL} : {})}));
-      } else {
-        const arr = [...additionalTemplates];
-        arr[index][urlField] = downloadURL;
-        setAdditionalTemplates(arr);
-      }
-      updateStatus("idle");
+      const updated = [...additionalTemplates];
+      updated[index][urlField] = downloadURL;
+      updated[index].status = "idle";
+      setAdditionalTemplates(updated);
     } catch (err) {
-      updateStatus("failed", err.message);
+      const failed = [...additionalTemplates];
+      failed[index].status = "failed";
+      failed[index].error = err.message;
+      setAdditionalTemplates(failed);
     }
   };
 
   const getElementsForPreset = (presetName) => {
     const p = IMAGE_LAYOUT_PRESETS.find(x => x.name === presetName);
-    return p ? JSON.parse(JSON.stringify(p.elements)) : elements;
+    return p ? JSON.parse(JSON.stringify(p.elements)) : [];
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsUploadingAll(true);
-    
-    // Upload Block 1
-    if (templateStatus.status !== "done") {
-        setTemplateStatus({status: "uploading", error: ""});
-        try {
-          const savePromise = addDoc(collection(db, "templates"), { ...template, elements: getElementsForPreset(templatePreset), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-          await Promise.race([savePromise, timeout(30000)]);
-          setTemplateStatus({status: "done", error: ""});
-        } catch (err) {
-          setTemplateStatus({status: "failed", error: err.message});
-        }
+    e.preventDefault(); 
+    if (!template.backgroundUrl || !template.thumbnailUrl) {
+      showToast("Error: Background and Thumbnail Images are required for Template 1!", "error");
+      return;
     }
     
-    // Upload Additional Blocks sequentially
+    // Check if any additional template is missing images
     for (let i = 0; i < additionalTemplates.length; i++) {
-        if (additionalTemplates[i].status === "done") continue;
-        
-        const arr = [...additionalTemplates];
-        arr[i].status = "uploading";
-        arr[i].error = "";
-        setAdditionalTemplates([...arr]);
-        
-        try {
-          const tpl = additionalTemplates[i];
-          const savePromise = addDoc(collection(db, "templates"), { 
-            title: tpl.title, categoryId: tpl.categoryId, tags: tpl.tags, language: "en",
-            thumbnailUrl: tpl.thumbnailUrl, previewUrl: tpl.thumbnailUrl, backgroundUrl: tpl.backgroundUrl,
-            canvasWidth: 1080, canvasHeight: 1080, isActive: true, isVideo: false, sortOrder: 0,
-            elements: getElementsForPreset(tpl.presetName), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() 
-          });
-          await Promise.race([savePromise, timeout(30000)]);
-          const arrDone = [...additionalTemplates];
-          arrDone[i].status = "done";
-          setAdditionalTemplates([...arrDone]);
-        } catch (err) {
-          const arrFail = [...additionalTemplates];
-          arrFail[i].status = "failed";
-          arrFail[i].error = err.message;
-          setAdditionalTemplates([...arrFail]);
-        }
+       if (!additionalTemplates[i].backgroundUrl || !additionalTemplates[i].thumbnailUrl) {
+         showToast(`Error: Images missing for Template ${i + 2}`, "error");
+         return;
+       }
     }
-    setIsUploadingAll(false);
+    
+    setIsUploadingAll(true);
+    setLoading(true);
+    
+    try {
+      // 1. Save original template
+      const savePromise = addDoc(collection(db, "templates"), { ...template, elements, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      await Promise.race([savePromise, timeout(30000)]);
+      
+      // 2. Save additional templates
+      for (let i = 0; i < additionalTemplates.length; i++) {
+          if (additionalTemplates[i].status === "done") continue;
+          
+          const arr = [...additionalTemplates];
+          arr[i].status = "uploading";
+          arr[i].error = "";
+          setAdditionalTemplates([...arr]);
+          
+          try {
+            const tpl = additionalTemplates[i];
+            const p = addDoc(collection(db, "templates"), { 
+              title: tpl.title, categoryId: tpl.categoryId, tags: tpl.tags, language: "en",
+              thumbnailUrl: tpl.thumbnailUrl, previewUrl: tpl.thumbnailUrl, backgroundUrl: tpl.backgroundUrl,
+              canvasWidth: 1080, canvasHeight: 1080, isActive: true, isVideo: false, sortOrder: 0,
+              elements: getElementsForPreset(tpl.presetName), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() 
+            });
+            await Promise.race([p, timeout(30000)]);
+            const arrDone = [...additionalTemplates];
+            arrDone[i].status = "done";
+            setAdditionalTemplates([...arrDone]);
+          } catch (err) {
+            const arrFail = [...additionalTemplates];
+            arrFail[i].status = "failed";
+            arrFail[i].error = err.message;
+            setAdditionalTemplates([...arrFail]);
+            throw err; // Stop sequence on error
+          }
+      }
+      
+      showToast("All Image Templates uploaded successfully!", "success");
+      setTemplate({ ...template, title: "", backgroundUrl: "", thumbnailUrl: "", previewUrl: "", tags: [] });
+      setAdditionalTemplates([]);
+    } catch (err) { 
+      console.error("Save Error:", err);
+      showToast("Upload Error. Please retry.", "error"); 
+    } finally {
+      setIsUploadingAll(false);
+      setLoading(false);
+    }
   };
 
 
@@ -622,28 +631,23 @@ function App() {
             <div className="page-header">
               <div className="page-header-icon image-icon-sm">🖼️</div>
               <div>
-                <h1 className="page-title">Image Template</h1>
+                <div style={{display:'flex', alignItems:'center', gap:'16px'}}>
+    <h1 className="page-title" style={{margin:0}}>Image Template</h1>
+    <button type="button" className="btn btn-outline btn-sm" onClick={() => {
+      setAdditionalTemplates([...additionalTemplates, {
+        _id: Date.now(), title: "", categoryId: template.categoryId, tags: [...template.tags],
+        thumbnailUrl: "", backgroundUrl: "", presetName: "",
+        status: "idle", error: ""
+      }]);
+    }}>＋ Add another template</button>
+  </div>
                 <p className="page-sub">Fill in the details and upload your poster template</p>
               </div>
             </div>
             <form onSubmit={handleSubmit} className="two-col-form">
-              
               <div className="col-left">
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
-                   <h2 style={{margin:0}}>Templates</h2>
-                   <button type="button" className="btn btn-outline" onClick={() => {
-                     setAdditionalTemplates([...additionalTemplates, {
-                       _id: Date.now(), title: "", categoryId: template.categoryId, tags: [...template.tags],
-                       thumbnailUrl: "", backgroundUrl: "", presetName: templatePreset,
-                       status: "idle", error: ""
-                     }]);
-                   }}>＋ Add another template</button>
-                </div>
-                
-                {/* BLOCK 1 */}
-                <div className="card" style={{border: templateStatus.status === 'failed' ? '2px solid red' : templateStatus.status === 'done' ? '2px solid green' : 'none'}}>
-                  <h3 className="card-title">Template 1</h3>
-                  {templateStatus.status === 'failed' && <div style={{color:'red', marginBottom:'8px'}}>{templateStatus.error}</div>}
+                <div className="card">
+                  <h3 className="card-title">Template Details</h3>
                   <div className="form-group">
                     <label>Title *</label>
                     <input required className="input" value={template.title} onChange={e => setTemplate({...template, title: e.target.value})} placeholder="e.g. Diwali Poster 2024" />
@@ -656,11 +660,8 @@ function App() {
                       </select>
                     </div>
                     <div className="form-group">
-                      <label>Design Preset</label>
-                      <select className="input" value={templatePreset} onChange={e => setTemplatePreset(e.target.value)}>
-                        <option value="">-- Select a Preset Style --</option>
-                        {IMAGE_LAYOUT_PRESETS.map((p, i) => <option key={i} value={p.name}>{p.name}</option>)}
-                      </select>
+                      <label>Sort Order</label>
+                      <input type="number" className="input" value={template.sortOrder} onChange={e => setTemplate({...template, sortOrder: Number(e.target.value)})} />
                     </div>
                   </div>
                   <div className="form-group">
@@ -674,25 +675,41 @@ function App() {
                     </div>
                     <input className="input" placeholder="Type and press Enter..." value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={handleAddTag} />
                   </div>
-                  <div className="two-inputs">
-                    <div className="form-group">
-                      <label>Background Image *</label>
-                      <input type="file" accept="image/*" onChange={(e) => handleMultiFileUpload(e, -1, "backgroundUrl")} className="input" />
-                      {template.backgroundUrl && <span style={{color:'green', fontSize:'12px'}}>✓ Uploaded</span>}
-                    </div>
-                    <div className="form-group">
-                      <label>Thumbnail *</label>
-                      <input type="file" accept="image/*" onChange={(e) => handleMultiFileUpload(e, -1, "thumbnailUrl")} className="input" />
-                      {template.thumbnailUrl && <span style={{color:'green', fontSize:'12px'}}>✓ Uploaded</span>}
-                    </div>
-                  </div>
-                  {templateStatus.status === 'failed' && <button type="button" onClick={handleSubmit} className="btn btn-outline-danger">Retry</button>}
                 </div>
 
-                {/* ADDITIONAL BLOCKS */}
+                <div className="card">
+                  <h3 className="card-title">Media URLs</h3>
+                  <div className="form-group">
+                    <label>Background Image *</label>
+                    <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTemplate, template, "backgroundUrl")} className="input" style={{flex: 1}} />
+                    </div>
+                    {template.backgroundUrl && <img src={template.backgroundUrl} className="media-preview" alt="bg" onError={e => e.target.style.display="none"} />}
+                  </div>
+                  <div className="form-group">
+                    <label>Thumbnail *</label>
+                    <div style={{display:"flex", gap:"8px", marginBottom:"8px"}}>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTemplate, template, "thumbnailUrl")} className="input" style={{flex: 1}} />
+                    </div>
+                    {template.thumbnailUrl && <img src={template.thumbnailUrl} className="media-preview" alt="thumb" onError={e => e.target.style.display="none"} />}
+                  </div>
+                  <div className="two-inputs">
+                    <div className="form-group"><label>Canvas W</label><input type="number" className="input" value={template.canvasWidth} onChange={e => setTemplate({...template, canvasWidth: Number(e.target.value)})} /></div>
+                    <div className="form-group"><label>Canvas H</label><input type="number" className="input" value={template.canvasHeight} onChange={e => setTemplate({...template, canvasHeight: Number(e.target.value)})} /></div>
+                  </div>
+                  
+                  <TemplatePreview 
+                    backgroundUrl={template.backgroundUrl} 
+                    canvasWidth={template.canvasWidth} 
+                    canvasHeight={template.canvasHeight} 
+                    elements={elements} 
+                  />
+                </div>
+
+                
                 {additionalTemplates.map((tpl, i) => (
-                  <div key={tpl._id} className="card" style={{marginTop: '16px', border: tpl.status === 'failed' ? '2px solid red' : tpl.status === 'done' ? '2px solid green' : 'none'}}>
-                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                  <div key={tpl._id} className="card" style={{border: tpl.status === 'failed' ? '2px solid red' : tpl.status === 'done' ? '2px solid green' : 'none'}}>
+                    <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom: '1px solid #e0e0e0', paddingBottom:'8px', marginBottom:'16px'}}>
                       <h3 className="card-title" style={{margin:0}}>Template {i + 2}</h3>
                       <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => {
                         const arr = [...additionalTemplates];
@@ -702,7 +719,7 @@ function App() {
                     </div>
                     {tpl.status === 'failed' && <div style={{color:'red', marginBottom:'8px'}}>{tpl.error}</div>}
                     
-                    <div className="form-group" style={{marginTop:'12px'}}>
+                    <div className="form-group">
                       <label>Title *</label>
                       <input required className="input" value={tpl.title} onChange={e => {
                         const arr = [...additionalTemplates];
@@ -745,19 +762,20 @@ function App() {
                       <div className="form-group">
                         <label>Background Image *</label>
                         <input type="file" accept="image/*" onChange={(e) => handleMultiFileUpload(e, i, "backgroundUrl")} className="input" />
-                        {tpl.backgroundUrl && <span style={{color:'green', fontSize:'12px'}}>✓ Uploaded</span>}
+                        {tpl.status === 'uploading' && <span style={{color:'blue', fontSize:'12px'}}>Uploading...</span>}
+                        {tpl.backgroundUrl && <span style={{color:'green', fontSize:'12px'}}>✓ {tpl.backgroundUrl.split('?')[0].split('/').pop()}</span>}
                       </div>
                       <div className="form-group">
                         <label>Thumbnail *</label>
                         <input type="file" accept="image/*" onChange={(e) => handleMultiFileUpload(e, i, "thumbnailUrl")} className="input" />
-                        {tpl.thumbnailUrl && <span style={{color:'green', fontSize:'12px'}}>✓ Uploaded</span>}
+                        {tpl.status === 'uploading' && <span style={{color:'blue', fontSize:'12px'}}>Uploading...</span>}
+                        {tpl.thumbnailUrl && <span style={{color:'green', fontSize:'12px'}}>✓ {tpl.thumbnailUrl.split('?')[0].split('/').pop()}</span>}
                       </div>
                     </div>
-                    {tpl.status === 'failed' && <button type="button" onClick={handleSubmit} className="btn btn-outline-danger">Retry</button>}
                   </div>
                 ))}
 
-                <button type="submit" disabled={isUploadingAll || templateStatus.status === 'uploading' || additionalTemplates.some(x => x.status === 'uploading')} className="btn btn-image btn-block btn-lg" style={{marginTop: '24px'}}>
+                <button type="submit" disabled={isUploadingAll || loading || additionalTemplates.some(x => x.status === 'uploading')} className="btn btn-image btn-block btn-lg">
                   <Save size={18} /> {isUploadingAll ? "Uploading All..." : additionalTemplates.length > 0 ? `Upload All (${additionalTemplates.length + 1})` : "Upload Image Template"}
                 </button>
               </div>
