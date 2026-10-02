@@ -187,7 +187,27 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState("");
-  const [view, setView] = useState("select");
+  const [view, setView] = useState(() => {
+    const hash = window.location.hash.replace("#", "");
+    return ["image", "video", "bulk"].includes(hash) ? hash : "select";
+  });
+
+  useEffect(() => {
+    if (view === "select") {
+      if (window.location.hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    } else {
+      window.location.hash = view;
+    }
+  }, [view]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "");
+      setView(["image", "video", "bulk"].includes(hash) ? hash : "select");
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
   const [toast, setToast] = useState({ message: "", type: "" });
 
   const showToast = (message, type = "error") => {
