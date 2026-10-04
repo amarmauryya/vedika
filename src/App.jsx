@@ -187,6 +187,7 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [showLogin, setShowLogin] = useState(false);
   const [view, setView] = useState(() => {
     const hash = window.location.hash.replace("#", "");
     return ["image", "video", "bulk"].includes(hash) ? hash : "select";
@@ -573,27 +574,35 @@ function App() {
 
   if (authLoading) return <div className="loading-screen"><div className="spinner"></div><p>Loading...</p></div>;
 
-  if (!user) return (
-    <div className="login-bg">
-      {ToastComponent}
-      <form className="login-card" onSubmit={handleLogin}>
-        <div className="login-logo">
-          <span>प</span>
+  if (!user) {
+    if (!showLogin) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#f3f4f6', fontFamily: 'Inter, sans-serif' }}>
+          <div style={{ background: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', textAlign: 'center', maxWidth: '400px', width: '90%' }}>
+            <div style={{ fontSize: '48px', color: '#4f46e5', marginBottom: '16px' }}>प</div>
+            <h1 style={{ color: '#1f2937', marginBottom: '8px', fontSize: '24px' }}>Post Prachaar</h1>
+            <p style={{ color: '#6b7280', marginBottom: '32px', fontSize: '14px' }}>Create stunning festival, business & political posters instantly!</p>
+            <button onClick={() => setShowLogin(true)} style={{ width: '100%', padding: '12px', backgroundColor: '#4f46e5', color: 'white', border: 'none', borderRadius: '6px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '16px' }}>Admin Login</button>
+            <a href="/privacy.html" style={{ display: 'inline-block', color: '#4f46e5', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>View Privacy Policy</a>
+          </div>
         </div>
-        <h2>Post Parchaar Admin</h2>
-        <p className="login-sub">Sign in to manage templates</p>
-        <div className="form-group">
-          <label>Email</label>
-          <input type="email" required className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@example.com" />
-        </div>
-        <div className="form-group">
-          <label>Password</label>
-          <input type="password" required className="input" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
-        </div>
-        <button type="submit" className="btn btn-primary btn-block">Sign In</button>
-      </form>
-    </div>
-  );
+      );
+    }
+    return (
+      <div className="login-bg">
+        {ToastComponent}
+        <form className="login-card" onSubmit={handleLogin}>
+          <div className="login-logo"><span>प</span></div>
+          <h2>Post Parchaar Admin</h2>
+          <p className="login-sub">Sign in to manage templates</p>
+          <div className="form-group"><label>Email</label><input type="email" required className="input" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@example.com" /></div>
+          <div className="form-group"><label>Password</label><input type="password" required className="input" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" /></div>
+          <button type="submit" className="btn btn-primary btn-block">Sign In</button>
+          <button type="button" onClick={() => setShowLogin(false)} className="btn btn-outline" style={{marginTop: '12px', width: '100%'}}>Back to Home</button>
+        </form>
+      </div>
+    );
+  }
 
   if (user && !isAdmin) return (
     <div className="access-denied">
